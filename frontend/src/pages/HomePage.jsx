@@ -398,37 +398,37 @@ export default function HomePage({ navigate }) {
   const [query, setQuery] = useState("");
   const [activeCat, setActiveCat] = useState("all");
   const [showSuggest, setShowSuggest] = useState(false);
+  const [liveDestinations, setLiveDestinations] = useState(destinations);
+  const [liveHotels, setLiveHotels] = useState(hotels);
+  const [weather, setWeather] = useState(null);
   useReveal();
+
+  useEffect(() => {
+    api.destinations().then(d => { const items = Array.isArray(d) ? d : d?.results; if (items?.length) setLiveDestinations(items); }).catch(() => {});
+    api.hotels().then(d => { const items = Array.isArray(d) ? d : d?.results; if (items?.length) setLiveHotels(items); }).catch(() => {});
+    api.weather().then(d => setWeather(d)).catch(() => {});
+  }, []);
 
   const q = query.trim().toLowerCase();
 
   const heroSuggestions = useMemo(() => {
     if (!q) return [];
-    return destinations
+    return liveDestinations
       .filter((d) => {
-        const name = t(d.name_key || d.name).toLowerCase();
-        const city = t(d.city_key || d.city).toLowerCase();
-        const desc = t(d.short_description_key || d.short_description || "").toLowerCase();
+        const name = (d.name_key ? t(d.name_key) : d.name || "").toLowerCase();
+        const city = (d.city_key ? t(d.city_key) : d.city || "").toLowerCase();
+        const desc = (d.short_description || "").toLowerCase();
         return name.includes(q) || city.includes(q) || desc.includes(q);
       })
       .slice(0, 5);
-  }, [q, t]);
+  }, [q, t, liveDestinations]);
 
-  const filtered =
-    activeCat === "all"
-      ? destinations
-      : destinations.filter((d) => {
-          const categoryValue = (d.category?.slug || d.category?.name_key || d.category?.name || "").toLowerCase();
-          return categoryValue === activeCat.toLowerCase();
-        });
+  const filtered = activeCat === "all"
+    ? liveDestinations
+    : liveDestinations.filter((d) => (d.category?.slug || d.category?.name || "").toLowerCase() === activeCat.toLowerCase());
 
-  const featuredDestinations = [...filtered]
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 6);
-
-  const featuredHotels = [...hotels]
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 4);
+  const featuredDestinations = [...filtered].sort((a, b) => b.rating - a.rating).slice(0, 6);
+  const featuredHotels = [...liveHotels].sort((a, b) => b.rating - a.rating).slice(0, 4);
 
   const quickNav = [
     { icon: "fa-mountain", label: t("trekking"), page: "destinations" },
@@ -436,14 +436,15 @@ export default function HomePage({ navigate }) {
     { icon: "fa-water", label: t("lakes"), page: "destinations" },
     { icon: "fa-bus", label: t("transport"), page: "transport" },
     { icon: "fa-user-tie", label: t("guides"), page: "guides" },
+    { icon: "fa-calculator", label: "Budget Estimator", page: "estimator" },
   ];
 
   const whyCards = [
-    { e: "🌍", t2: t("why_all_in_one"), d: t("why_all_in_one_desc"), bg: "linear-gradient(135deg,#667eea,#764ba2)" },
-    { e: "🗺️", t2: t("why_maps"), d: t("why_maps_desc"), bg: "linear-gradient(135deg,#f7971e,#ffd200)" },
+    { e: "🤝", t2: "Micro-Experience Marketplace", d: "Book a day with a Sherpa family, join a yak herder, or learn Thangka painting. Authentic, non-commoditized travel that gets shared.", bg: "linear-gradient(135deg,#ffd166,#ff7b54)" },
+    { e: "⚖️", t2: "Porter Ethics System", d: "The only platform that scores every agency on porter welfare — fair wages, load limits, insurance. A moral gap turned into a competitive badge.", bg: "linear-gradient(135deg,#06d6a0,#059669)" },
     { e: "🛡️", t2: t("why_safety"), d: t("why_safety_desc"), bg: "linear-gradient(135deg,#ff5f6d,#ffc371)" },
     { e: "🌐", t2: t("why_multilingual"), d: t("why_multilingual_desc"), bg: "linear-gradient(135deg,#11998e,#38ef7d)" },
-    { e: "⭐", t2: t("why_reviews"), d: t("why_reviews_desc"), bg: "linear-gradient(135deg,#f6d365,#fda085)" },
+    { e: "🗺️", t2: t("why_maps"), d: t("why_maps_desc"), bg: "linear-gradient(135deg,#f7971e,#ffd200)" },
     { e: "📱", t2: t("why_mobile"), d: t("why_mobile_desc"), bg: "linear-gradient(135deg,#36d1dc,#5b86e5)" },
   ];
 
@@ -525,7 +526,7 @@ export default function HomePage({ navigate }) {
                   marginBottom: 20,
                 }}
               >
-                🏔️ {t("hero_badge")}
+                🏔️ Nepal's Ethical Travel Marketplace
               </div>
 
               <h1
@@ -575,7 +576,7 @@ export default function HomePage({ navigate }) {
                     placeholder={t("search_placeholder")}
                     value={query}
                     onFocus={() => setShowSuggest(true)}
-                    onBlur={() => setTimeout(() => setShowSuggest(false), 120)}
+                    onBlur={() => setTimeout(() => setShowSuggest(false), 200)}
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && query && navigate("search", { q: query })}
                   />
@@ -603,7 +604,8 @@ export default function HomePage({ navigate }) {
                     {heroSuggestions.map((item) => (
                       <button
                         key={item.id}
-                        onClick={() => navigate("destination-detail", { id: item.id })}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => { setShowSuggest(false); navigate("destination-detail", { id: item.id }); }}
                         style={{
                           width: "100%",
                           textAlign: "left",
@@ -653,9 +655,9 @@ export default function HomePage({ navigate }) {
 
               <div className="stats-bar anim-fadeup stagger-5">
                 {[
-                  { t: 500, s: "+", k: "stat_destinations" },
-                  { t: 1200, s: "+", k: "stat_hotels" },
-                  { t: 300, s: "+", k: "stat_guides" },
+                  { t: liveDestinations.length || 500, s: "+", k: "stat_destinations" },
+                  { t: liveHotels.length || 200, s: "+", k: "stat_hotels" },
+                  { t: 100, s: "+", k: "stat_guides" },
                   { t: 50000, s: "+", k: "stat_travelers" },
                 ].map((stat) => (
                   <div className="stat-item" key={stat.k}>
@@ -663,6 +665,14 @@ export default function HomePage({ navigate }) {
                     <div className="stat-lbl">{t(stat.k)}</div>
                   </div>
                 ))}
+                {weather && (
+                  <div className="stat-item" style={{ borderLeft:"2px solid rgba(255,255,255,0.15)", paddingLeft:20 }}>
+                    <div className="stat-num" style={{ fontSize:"1.4rem" }}>
+                      {weather.temp}°C
+                    </div>
+                    <div className="stat-lbl">Kathmandu Now</div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -823,6 +833,162 @@ export default function HomePage({ navigate }) {
       </section>
 
       <TestimonialsSection />
+
+      {/* ── USP 1: MICRO-EXPERIENCE MARKETPLACE ── */}
+      <section style={{ padding:"96px 0", background:"linear-gradient(160deg,#0f0c29 0%,#1a0533 50%,#0d1117 100%)", position:"relative", overflow:"hidden" }}>
+        <div style={{ position:"absolute", inset:0, backgroundImage:"url('https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1920&q=60')", backgroundSize:"cover", backgroundPosition:"center", opacity:0.08 }} />
+        <div style={{ position:"absolute", width:600, height:600, borderRadius:"50%", background:"radial-gradient(circle,rgba(255,209,102,0.12),transparent 70%)", top:"-20%", right:"-10%", pointerEvents:"none" }} />
+        <div className="container" style={{ position:"relative", zIndex:2 }}>
+          <div className="usp-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:64, alignItems:"center" }}>
+            {/* Left: copy */}
+            <div className="reveal">
+              <div style={{ display:"inline-flex", alignItems:"center", gap:8, background:"rgba(255,209,102,0.12)", border:"2px solid rgba(255,209,102,0.25)", borderRadius:99, padding:"6px 16px", marginBottom:20 }}>
+                <span style={{ fontSize:"1rem" }}>🤝</span>
+                <span style={{ color:"#ffd166", fontWeight:800, fontSize:"0.78rem", textTransform:"uppercase", letterSpacing:1.5 }}>Micro-Experience Marketplace</span>
+              </div>
+              <h2 style={{ fontFamily:"'Playfair Display',serif", fontSize:"clamp(2rem,4vw,3.2rem)", fontWeight:900, color:"#fff", lineHeight:1.15, marginBottom:20 }}>
+                Book a Day With a<br />
+                <span style={{ background:"linear-gradient(135deg,#ffd166,#ff7b54)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Sherpa Family</span>
+              </h2>
+              <p style={{ color:"rgba(255,255,255,0.72)", fontSize:"1.05rem", lineHeight:1.8, fontWeight:500, marginBottom:32, maxWidth:480 }}>
+                Not a tour. Not a package. A real day — cooking dal bhat at altitude, learning to read weather in the Khumbu, carrying a load with a porter family. These are the experiences that get shared, written about, and remembered for a lifetime.
+              </p>
+              <div style={{ display:"flex", flexDirection:"column", gap:14, marginBottom:36 }}>
+                {[
+                  { icon:"fa-home", label:"Sherpa Family Homestay", desc:"Sleep, eat, and live with a family in Namche Bazaar" },
+                  { icon:"fa-seedling", label:"Yak Herder for a Day", desc:"Follow the seasonal migration routes above 4,000m" },
+                  { icon:"fa-paint-brush", label:"Thangka Painting Workshop", desc:"Learn sacred Buddhist art from a master in Patan" },
+                  { icon:"fa-fire", label:"High-Altitude Cooking Class", desc:"Master dal bhat and sel roti in a mountain kitchen" },
+                ].map(item => (
+                  <div key={item.label} style={{ display:"flex", gap:14, alignItems:"flex-start" }}>
+                    <div style={{ width:38, height:38, borderRadius:12, background:"rgba(255,209,102,0.15)", border:"2px solid rgba(255,209,102,0.25)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                      <i className={`fas ${item.icon}`} style={{ color:"#ffd166", fontSize:"0.85rem" }}></i>
+                    </div>
+                    <div>
+                      <div style={{ color:"#fff", fontWeight:800, fontSize:"0.9rem" }}>{item.label}</div>
+                      <div style={{ color:"rgba(255,255,255,0.55)", fontSize:"0.8rem", fontWeight:600 }}>{item.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button className="clay-btn clay-btn-gold clay-btn-lg" onClick={() => navigate("guides")} style={{ boxShadow:"0 12px 32px rgba(255,209,102,0.3)" }}>
+                <i className="fas fa-compass"></i> Browse Micro-Experiences
+              </button>
+            </div>
+            {/* Right: experience cards */}
+            <div className="reveal" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+              {[
+                { img:"https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=600&q=80", title:"Sherpa Family Day", price:"From $45", tag:"Most Shared", tagColor:"#ffd166" },
+                { img:"https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&q=80", title:"Yak Herder Trek", price:"From $60", tag:"Authentic", tagColor:"#06d6a0" },
+                { img:"https://images.unsplash.com/photo-1605640840605-14ac1855827b?w=600&q=80", title:"Thangka Workshop", price:"From $35", tag:"Cultural", tagColor:"#7c3aed" },
+                { img:"https://images.unsplash.com/photo-1580674684081-7617fbf3d745?w=600&q=80", title:"Temple Ceremony", price:"From $25", tag:"Spiritual", tagColor:"#e84855" },
+              ].map((card, i) => (
+                <div key={i} style={{ borderRadius:20, overflow:"hidden", position:"relative", cursor:"pointer", boxShadow:"0 12px 32px rgba(0,0,0,0.35)", transition:"transform 0.3s", animationDelay:`${i*0.1}s` }}
+                  onMouseEnter={e => e.currentTarget.style.transform="translateY(-6px) scale(1.02)"}
+                  onMouseLeave={e => e.currentTarget.style.transform="none"}
+                  onClick={() => navigate("guides")}>
+                  <img src={card.img} alt={card.title} style={{ width:"100%", height:160, objectFit:"cover", display:"block" }} />
+                  <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top,rgba(0,0,0,0.8) 0%,transparent 55%)" }} />
+                  <div style={{ position:"absolute", top:10, left:10, background:card.tagColor, color:"#000", fontSize:"0.65rem", fontWeight:900, padding:"3px 10px", borderRadius:99, textTransform:"uppercase", letterSpacing:0.5 }}>{card.tag}</div>
+                  <div style={{ position:"absolute", bottom:12, left:12, right:12 }}>
+                    <div style={{ color:"#fff", fontWeight:800, fontSize:"0.88rem", marginBottom:2 }}>{card.title}</div>
+                    <div style={{ color:"#ffd166", fontWeight:900, fontSize:"0.82rem" }}>{card.price}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── USP 2: PORTER ETHICS SYSTEM ── */}
+      <section style={{ padding:"96px 0", background:"var(--bg)", position:"relative", overflow:"hidden" }}>
+        <div style={{ position:"absolute", width:500, height:500, borderRadius:"50%", background:"radial-gradient(circle,rgba(6,214,160,0.08),transparent 70%)", bottom:"-15%", left:"-8%", pointerEvents:"none" }} />
+        <div className="container" style={{ position:"relative", zIndex:2 }}>
+          <div className="usp-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:64, alignItems:"center" }}>
+            {/* Left: ethics score cards */}
+            <div className="reveal" style={{ display:"flex", flexDirection:"column", gap:16 }}>
+              <div style={{ background:"linear-gradient(135deg,rgba(6,214,160,0.08),rgba(6,214,160,0.03))", border:"3px solid rgba(6,214,160,0.2)", borderRadius:24, padding:28 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+                  <div style={{ fontWeight:900, color:"var(--text)", fontSize:"1rem" }}>Porter Ethics Score</div>
+                  <div style={{ background:"linear-gradient(135deg,#06d6a0,#059669)", color:"#fff", fontWeight:900, fontSize:"1.4rem", padding:"6px 16px", borderRadius:12 }}>9.4 / 10</div>
+                </div>
+                {[
+                  { label:"Fair Wage Compliance", score:98, color:"#06d6a0" },
+                  { label:"Max Load Limit (25kg)", score:100, color:"#4361ee" },
+                  { label:"Proper Equipment Provided", score:95, color:"#ffd166" },
+                  { label:"Insurance Coverage", score:92, color:"#e84855" },
+                  { label:"Rest Day Adherence", score:97, color:"#7c3aed" },
+                ].map(item => (
+                  <div key={item.label} style={{ marginBottom:14 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
+                      <span style={{ fontSize:"0.82rem", fontWeight:700, color:"var(--text2)" }}>{item.label}</span>
+                      <span style={{ fontSize:"0.82rem", fontWeight:900, color:item.color }}>{item.score}%</span>
+                    </div>
+                    <div style={{ height:8, borderRadius:99, background:"var(--bg2)", overflow:"hidden" }}>
+                      <div style={{ height:"100%", width:`${item.score}%`, background:item.color, borderRadius:99, transition:"width 1s ease" }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                {[
+                  { icon:"fa-shield-alt", label:"Verified Agency", color:"#4361ee", bg:"rgba(67,97,238,0.1)" },
+                  { icon:"fa-certificate", label:"Ethics Certified", color:"#06d6a0", bg:"rgba(6,214,160,0.1)" },
+                  { icon:"fa-users", label:"Porter Union Member", color:"#ffd166", bg:"rgba(255,209,102,0.1)" },
+                  { icon:"fa-heart", label:"Community Benefit", color:"#e84855", bg:"rgba(232,72,85,0.1)" },
+                ].map(b => (
+                  <div key={b.label} style={{ background:b.bg, border:`2px solid ${b.color}33`, borderRadius:16, padding:"14px 16px", display:"flex", alignItems:"center", gap:10 }}>
+                    <i className={`fas ${b.icon}`} style={{ color:b.color, fontSize:"1.1rem" }}></i>
+                    <span style={{ fontWeight:800, fontSize:"0.82rem", color:"var(--text)" }}>{b.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Right: copy */}
+            <div className="reveal">
+              <div style={{ display:"inline-flex", alignItems:"center", gap:8, background:"rgba(6,214,160,0.1)", border:"2px solid rgba(6,214,160,0.25)", borderRadius:99, padding:"6px 16px", marginBottom:20 }}>
+                <span style={{ fontSize:"1rem" }}>⚖️</span>
+                <span style={{ color:"#06d6a0", fontWeight:800, fontSize:"0.78rem", textTransform:"uppercase", letterSpacing:1.5 }}>Porter Ethics System</span>
+              </div>
+              <h2 style={{ fontFamily:"'Playfair Display',serif", fontSize:"clamp(2rem,4vw,3.2rem)", fontWeight:900, color:"var(--text)", lineHeight:1.15, marginBottom:20 }}>
+                The First Platform That<br />
+                <span style={{ background:"linear-gradient(135deg,#06d6a0,#4361ee)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Protects Porters</span>
+              </h2>
+              <p style={{ color:"var(--text2)", fontSize:"1.05rem", lineHeight:1.8, fontWeight:500, marginBottom:28, maxWidth:480 }}>
+                Every trekking agency on Tour Tech is scored on porter welfare — fair wages, load limits, proper equipment, and insurance. No other booking platform has built this. We turned a moral gap into a competitive advantage.
+              </p>
+              <div style={{ display:"flex", flexDirection:"column", gap:16, marginBottom:36 }}>
+                {[
+                  { icon:"fa-weight-hanging", title:"25kg Maximum Load", desc:"We enforce the international standard. No exceptions, no negotiations." },
+                  { icon:"fa-dollar-sign", title:"Fair Wage Guarantee", desc:"Minimum $18/day verified against Nepal Porter Association standards." },
+                  { icon:"fa-first-aid", title:"Mandatory Insurance", desc:"Every porter on our platform is covered for medical evacuation." },
+                  { icon:"fa-star", title:"Porter Review System", desc:"Travelers rate porter treatment. Agencies with low scores are removed." },
+                ].map(item => (
+                  <div key={item.title} style={{ display:"flex", gap:14, alignItems:"flex-start" }}>
+                    <div style={{ width:42, height:42, borderRadius:14, background:"linear-gradient(135deg,#06d6a0,#059669)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, boxShadow:"0 6px 16px rgba(6,214,160,0.3)" }}>
+                      <i className={`fas ${item.icon}`} style={{ color:"#fff", fontSize:"0.9rem" }}></i>
+                    </div>
+                    <div>
+                      <div style={{ fontWeight:800, color:"var(--text)", marginBottom:2 }}>{item.title}</div>
+                      <div style={{ color:"var(--text3)", fontSize:"0.85rem", fontWeight:500, lineHeight:1.5 }}>{item.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
+                <button className="clay-btn clay-btn-green clay-btn-lg" onClick={() => navigate("guides")} style={{ boxShadow:"0 12px 32px rgba(6,214,160,0.25)" }}>
+                  <i className="fas fa-shield-alt"></i> View Ethics-Certified Guides
+                </button>
+                <button className="clay-btn clay-btn-outline" onClick={() => navigate("about")}>
+                  Learn More
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <NewsletterSection />
 
       <style>{`
@@ -839,12 +1005,12 @@ export default function HomePage({ navigate }) {
           .hero-grid{grid-template-columns:1fr !important;min-height:auto !important;}
           .hero-visual{min-height:320px !important;margin-top:10px;}
           .hero-visual img{max-width:420px !important;max-height:360px !important;}
+          .usp-grid{grid-template-columns:1fr !important;gap:40px !important;}
         }
-
         @media (max-width: 768px){
           .hero-visual{display:none !important;}
+          .usp-grid{grid-template-columns:1fr !important;gap:32px !important;}
         }
-
         @media (max-width: 900px){
           .clay-card[style*="grid-template-columns: 1.2fr 1fr 1fr auto"]{
             grid-template-columns:1fr !important;

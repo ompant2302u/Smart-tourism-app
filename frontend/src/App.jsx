@@ -23,6 +23,7 @@ import ProfilePage from "./pages/ProfilePage";
 import AdminDashboard from "./pages/AdminDashboard";
 import ActivityTracker from "./pages/ActivityTracker";
 import TransportPage from "./pages/TransportPage";
+import TripCostEstimator from "./pages/TripCostEstimator";
 
 const NO_FOOTER = ["login", "register"];
 const NO_NAV_PAD = ["home", "login", "register"];
@@ -114,6 +115,8 @@ function AppInner() {
         return <AdminDashboard {...props} />;
       case "activity":
         return <ActivityTracker {...props} />;
+      case "estimator":
+        return <TripCostEstimator {...props} />;
       default:
         return <HomePage {...props} />;
     }
@@ -130,7 +133,7 @@ function AppInner() {
         theme={theme}
         setTheme={setTheme}
       />
-      <main style={{ marginTop: NO_NAV_PAD.includes(page) ? 0 : 70 }}>
+      <main style={{ marginTop: NO_NAV_PAD.includes(page) ? 0 : 64 }}>
         {renderPage()}
       </main>
       {!NO_FOOTER.includes(page) && <Footer navigate={navigate} />}

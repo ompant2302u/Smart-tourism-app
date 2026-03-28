@@ -1,29 +1,32 @@
 import { useState, useEffect } from "react";
-import { destinations, categories, hotels, mockReviews } from "../data/mockData";
+import { destinations as mockDests, categories, hotels as mockHotels } from "../data/mockData";
 import { DestinationCard, ReviewItem, ReviewForm, MapEmbed } from "../components/Cards";
 import { api } from "../api";
 import { useLang } from "../context/LangContext";
+import NepalImage from "../components/common/NepalImage";
 
 export function DestinationsPage({ navigate }) {
   const { t } = useLang();
   const [selCat, setSelCat] = useState("");
   const [selCountry, setSelCountry] = useState("");
   const [sort, setSort] = useState("-rating");
+  const [destinations, setDestinations] = useState(mockDests);
 
-  const countries = [
-    ...new Set(destinations.map((d) => d.country_key || d.country || "country_nepal")),
-  ];
+  useEffect(() => {
+    api.destinations().then(data => {
+      const items = Array.isArray(data) ? data : data?.results;
+      if (items?.length) setDestinations(items);
+    }).catch(() => {});
+  }, []);
+
+  const countries = [...new Set(destinations.map((d) => d.country_key || d.country || "Nepal"))];
 
   let filtered = destinations
     .filter((d) => !selCat || (d.category?.slug || d.category?.name?.toLowerCase()) === selCat)
     .filter((d) => !selCountry || (d.country_key || d.country) === selCountry);
 
   if (sort === "-rating") filtered = [...filtered].sort((a, b) => b.rating - a.rating);
-  if (sort === "name") {
-    filtered = [...filtered].sort((a, b) =>
-      t(a.name_key || a.name).localeCompare(t(b.name_key || b.name))
-    );
-  }
+  if (sort === "name") filtered = [...filtered].sort((a, b) => (a.name||"").localeCompare(b.name||""));
   if (sort === "entry_fee") filtered = [...filtered].sort((a, b) => a.entry_fee - b.entry_fee);
   if (sort === "-entry_fee") filtered = [...filtered].sort((a, b) => b.entry_fee - a.entry_fee);
 
@@ -117,35 +120,47 @@ export function DestinationsPage({ navigate }) {
 
 export function DestinationDetailPage({ navigate, pageParams, user }) {
   const { t } = useLang();
-  const dest = destinations.find((d) => d.id === pageParams.id) || destinations[0];
-  const nearby = destinations.filter((d) => d.id !== dest.id && (d.country_key || d.country) === (dest.country_key || dest.country)).slice(0, 4);
-  const nearbyHotels = hotels.filter((h) => h.destination.city === dest.city).slice(0, 3);
+  const mockDest = mockDests.find((d) => d.id === pageParams.id) || mockDests[0];
+  const [dest, setDest] = useState(mockDest);
+  const nearby = mockDests.filter((d) => d.id !== dest.id && (d.country_key || d.country) === (dest.country_key || dest.country)).slice(0, 4);
+  const nearbyHotels = mockHotels.filter((h) => h.destination.city === dest.city).slice(0, 3);
 
-  const [reviews, setReviews] = useState(mockReviews);
+  const [reviews, setReviews] = useState([]);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (user && dest.id) {
-      api.addVisit({ content_type: "destination", destination_id: dest.id, item_name: dest.name || dest.name_key }).catch(() => {});
+    // Try to load from backend by slug
+    if (dest.slug) {
+      api.destination(dest.slug).then(d => { if (d?.id) setDest(d); }).catch(() => {});
     }
-  }, [dest.id]);
+    fetch(`http://127.0.0.1:8000/api/destinations/${dest.slug || dest.id}/reviews/`)
+      .then(r => r.json()).then(d => { if (Array.isArray(d)) setReviews(d); }).catch(() => setReviews([]));
+    if (user) {
+      api.addVisit({ content_type: "destination", destination_id: dest.id, item_name: dest.name }).catch(() => {});
+      api.checkFavorite("destination", dest.id).then(r => setSaved(!!r?.is_favourite)).catch(() => {});
+    }
+  }, [dest.id, user?.id]);
 
   const handleReviewSubmit = async (r) => {
+    if (!user) { navigate("login"); return; }
     try {
-      await api.submitReview({ content_type: "destination", destination: dest.id, rating: r.rating, comment: r.comment });
-      setReviews(prev => [{ ...r, id: Date.now(), user, created_at: new Date().toLocaleDateString() }, ...prev]);
+      const saved_review = await api.submitReview({ content_type: "destination", destination_id: dest.id, rating: r.rating, comment: r.comment });
+      setReviews(prev => [saved_review, ...prev]);
+      navigate("profile", { tab: "reviews" });
+      setTimeout(() => window.dispatchEvent(new CustomEvent("nw-data-changed")), 0);
     } catch {}
   };
 
   const handleSave = async () => {
-    if (!user) {
-      navigate("login");
-      return;
-    }
+    if (!user) { navigate("login"); return; }
     try {
       await api.toggleFavorite({ content_type: "destination", id: dest.id });
+      setSaved(s => !s);
+      if (!saved) {
+        navigate("profile", { tab: "favourites" });
+        setTimeout(() => window.dispatchEvent(new CustomEvent("nw-data-changed")), 0);
+      }
     } catch {}
-    setSaved((s) => !s);
   };
 
   const tips = [
@@ -164,11 +179,7 @@ export function DestinationDetailPage({ navigate, pageParams, user }) {
   return (
     <div>
       <div className="detail-hero">
-        {dest.image ? (
-          <img src={dest.image} alt={destName} />
-        ) : (
-          <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#0f172a,#1e3a5f)" }}></div>
-        )}
+        <NepalImage item={dest} entityType="destination" style={{ width: "100%", height: "100%" }} showCredit={true} />
 
         <div className="detail-hero-overlay"></div>
 
@@ -388,19 +399,7 @@ export function DestinationDetailPage({ navigate, pageParams, user }) {
                       {hotel.image ? (
                         <img src={hotel.image} alt={hotel.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       ) : (
-                        <div
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            background: "linear-gradient(135deg,#f59e0b,#e67e22)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: "1.5rem",
-                          }}
-                        >
-                          🏨
-                        </div>
+                        <NepalImage item={hotel} entityType="hotel" style={{ width: "100%", height: "100%" }} />
                       )}
                     </div>
 
@@ -454,7 +453,7 @@ export function DestinationDetailPage({ navigate, pageParams, user }) {
                       {d.image ? (
                         <img src={d.image} alt={t(d.name_key || d.name)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       ) : (
-                        <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#1e3a5f,#2563eb)" }}></div>
+                        <NepalImage item={d} entityType="destination" style={{ width: "100%", height: "100%" }} />
                       )}
                     </div>
 

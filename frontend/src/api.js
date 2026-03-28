@@ -80,14 +80,20 @@ export const api = {
   favorites: () => get("/favorites/", true),
   addFavorite: (data) => post("/favorites/", data, true),
   removeFavorite: (data) => del("/favorites/", data, true),
+  checkFavorite: (content_type, id) => get(`/favorites/check/?content_type=${content_type}&id=${id}`, true),
   async toggleFavorite(data) {
-    // data: { content_type, id } — id is the item's pk
-    const postData = {
-      content_type: data.content_type,
-      [`${data.content_type}_id`]: data.id,
-    };
-    try { return await post("/favorites/", postData, true); }
-    catch { return await del("/favorites/", { content_type: data.content_type, id: data.id }, true); }
+    const postData = { content_type: data.content_type, item_name: data.item_name || "" };
+    if (data.content_type !== "transport") {
+      postData[`${data.content_type}_id`] = data.id;
+    }
+    try {
+      return await post("/favorites/", postData, true);
+    } catch {
+      // Already favourited — remove it
+      const delData = { content_type: data.content_type };
+      if (data.content_type !== "transport") delData.id = data.id;
+      return await del("/favorites/", delData, true);
+    }
   },
 
   // Visit History

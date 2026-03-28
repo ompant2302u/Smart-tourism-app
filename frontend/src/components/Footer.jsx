@@ -29,9 +29,8 @@ export default function Footer({ navigate }) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "2fr 1fr 1fr 1.8fr",
-            gap: 32,
-            flexWrap: "wrap",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: 28,
           }}
         >
           <div>
@@ -105,6 +104,7 @@ export default function Footer({ navigate }) {
               ["hotels", t("hotels")],
               ["transport", t("transport")],
               ["guides", t("guides")],
+              ["estimator", "Budget Estimator"],
             ].map(([pg, lbl]) => (
               <a key={pg} className="footer-link" onClick={() => navigate(pg)}>
                 {lbl}

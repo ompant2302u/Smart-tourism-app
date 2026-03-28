@@ -32,7 +32,7 @@ class DestinationSerializer(serializers.ModelSerializer):
         fields = [
             "id","name","slug","city","country","category","category_id","rating","entry_fee",
             "currency","best_time_to_visit","short_description","description","latitude","longitude",
-            "image","altitude","difficulty","review_count","created_at",
+            "image","image_credit_name","image_credit_link","altitude","difficulty","review_count","created_at",
         ]
         read_only_fields = ["id", "review_count", "created_at"]
 
@@ -85,16 +85,25 @@ class EmergencyContactSerializer(serializers.ModelSerializer):
 
 class ReviewSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
+    destination_id = serializers.PrimaryKeyRelatedField(
+        queryset=Destination.objects.all(), source="destination", write_only=True, required=False, allow_null=True,
+    )
+    hotel_id = serializers.PrimaryKeyRelatedField(
+        queryset=Hotel.objects.all(), source="hotel", write_only=True, required=False, allow_null=True,
+    )
+    guide_id = serializers.PrimaryKeyRelatedField(
+        queryset=Guide.objects.all(), source="guide", write_only=True, required=False, allow_null=True,
+    )
 
     class Meta:
         model = Review
-        fields = ["id","user","content_type","destination","hotel","guide","rating","comment","created_at"]
-        read_only_fields = ["id", "user", "created_at"]
+        fields = ["id","user","content_type","destination","hotel","guide","destination_id","hotel_id","guide_id","rating","comment","created_at"]
+        read_only_fields = ["id", "user", "created_at", "destination", "hotel", "guide"]
 
     def validate(self, attrs):
         filled = [bool(attrs.get("destination")), bool(attrs.get("hotel")), bool(attrs.get("guide"))]
         if sum(filled) != 1:
-            raise serializers.ValidationError("Provide exactly one target: destination, hotel, or guide.")
+            raise serializers.ValidationError("Provide exactly one of: destination_id, hotel_id, or guide_id.")
         return attrs
 
 
@@ -118,6 +127,9 @@ class FavoriteSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at"]
 
     def validate(self, attrs):
+        ct = attrs.get("content_type")
+        if ct == "transport":
+            return attrs  # transport has no FK, just item_name
         filled = [bool(attrs.get("destination")), bool(attrs.get("hotel")), bool(attrs.get("guide"))]
         if sum(filled) != 1:
             raise serializers.ValidationError("Provide exactly one target.")

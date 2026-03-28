@@ -2,7 +2,22 @@ import { useState, useEffect } from "react";
 import { api, clearToken } from "../api";
 import { useLang } from "../context/LangContext";
 
-const TABS = ["overview","reviews","favourites","visited","payments","tickets","settings"];
+// Currency per language
+const LANG_CURRENCY = {
+  en:{ code:"USD", symbol:"$",  rate:1 },
+  ne:{ code:"NPR", symbol:"रू", rate:133.5 },
+  hi:{ code:"INR", symbol:"₹",  rate:83.5 },
+  zh:{ code:"CNY", symbol:"¥",  rate:7.24 },
+  de:{ code:"EUR", symbol:"€",  rate:0.92 },
+  fr:{ code:"EUR", symbol:"€",  rate:0.92 },
+  ja:{ code:"JPY", symbol:"¥",  rate:149.5 },
+};
+function fmtAmt(usd, curr) {
+  const v = usd * curr.rate;
+  return `${curr.symbol}${v.toFixed(curr.rate > 50 ? 0 : 2)}`;
+}
+
+const TABS = ["overview","reviews","favourites","payments","tickets","settings"];
 
 const PAY_METHODS = [
   { id:"visa",       label:"Visa",       fab:"fa-cc-visa",       grad:"linear-gradient(135deg,#1a1f71,#2563eb)", tag:"foreign" },
@@ -36,6 +51,8 @@ function StatCard({ icon, label, value, grad }) {
 }
 
 function PaymentModal({ booking, onClose, onSuccess }) {
+  const { lang } = useLang();
+  const curr = LANG_CURRENCY[lang] || LANG_CURRENCY.en;
   const [method, setMethod] = useState("visa");
   const [card, setCard] = useState({ num:"", exp:"", cvv:"" });
   const [mobile, setMobile] = useState("");
@@ -65,7 +82,7 @@ function PaymentModal({ booking, onClose, onSuccess }) {
         <div style={{ textAlign:"center", marginBottom:24 }}>
           <div style={{ fontSize:"2.5rem" }}>💳</div>
           <h4 style={{ fontWeight:900, color:"var(--text)", margin:"8px 0 4px" }}>Complete Payment</h4>
-          <p style={{ color:"var(--text3)", fontWeight:600 }}>{booking.item_name} — <strong style={{ color:"var(--clay-red)" }}>${booking.amount}</strong></p>
+          <p style={{ color:"var(--text3)", fontWeight:600 }}>{booking.item_name} — <strong style={{ color:"var(--clay-red)" }}>{fmtAmt(booking.amount, curr)}</strong></p>
         </div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:20 }}>
           {PAY_METHODS.map(m => (
@@ -100,7 +117,7 @@ function PaymentModal({ booking, onClose, onSuccess }) {
             </p>
           </>)}
           <button type="submit" className="clay-btn clay-btn-red clay-btn-full clay-btn-lg" style={{ marginTop:8 }} disabled={loading}>
-            <i className={`fas ${loading?"fa-spinner fa-spin":"fa-lock"}`}></i> {loading?"Processing...":`Pay $${booking.amount}`}
+            <i className={`fas ${loading?"fa-spinner fa-spin":"fa-lock"}`}></i> {loading?"Processing...":(`Pay ${fmtAmt(booking.amount, curr)}`)}
           </button>
         </form>
       </div>
@@ -144,12 +161,11 @@ function RefundModal({ payment, onClose, onSuccess }) {
   );
 }
 
-export default function ProfilePage({ navigate, user, setUser }) {
+export default function ProfilePage({ navigate, user, setUser, pageParams }) {
   const { t } = useLang();
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState(pageParams?.tab || "overview");
   const [reviews, setReviews] = useState([]);
   const [favs, setFavs] = useState([]);
-  const [history, setHistory] = useState([]);
   const [payments, setPayments] = useState([]);
   const [refunds, setRefunds] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -161,18 +177,32 @@ export default function ProfilePage({ navigate, user, setUser }) {
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
 
-  useEffect(() => {
-    if (!user) { navigate("login"); return; }
+  const loadData = () => {
     Promise.all([
       api.myReviews().catch(() => []),
       api.favorites().catch(() => []),
-      api.visitHistory().catch(() => []),
       api.payments().catch(() => []),
       api.refunds().catch(() => []),
-    ]).then(([r, f, h, p, rf]) => {
-      setReviews(r); setFavs(f); setHistory(h); setPayments(p); setRefunds(rf);
+    ]).then(([r, f, p, rf]) => {
+      setReviews(r); setFavs(f); setPayments(p); setRefunds(rf);
     }).finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    if (!user) { navigate("login"); return; }
+    loadData();
+    const refresh = () => loadData();
+    window.addEventListener("nw-data-changed", refresh);
+    return () => window.removeEventListener("nw-data-changed", refresh);
   }, [user]);
+
+  // Reload data and switch tab when navigated with a tab param
+  useEffect(() => {
+    if (pageParams?.tab) {
+      setTab(pageParams.tab);
+      if (user) loadData();
+    }
+  }, [pageParams?.tab]);
 
   if (!user) return null;
 
@@ -199,10 +229,7 @@ export default function ProfilePage({ navigate, user, setUser }) {
     showToast("Removed from favourites");
   };
 
-  const typeIcon = { destination:"📍", hotel:"🏨", transport:"🚌", guide:"👤" };
-  const statusColor = { confirmed:"green", pending:"gold", cancelled:"red", refunded:"blue", completed:"green", requested:"gold", approved:"blue", processed:"green", rejected:"red" };
-
-  const tabIcons = { overview:"fa-th-large", reviews:"fa-star", favourites:"fa-heart", visited:"fa-map-marked-alt", payments:"fa-credit-card", tickets:"fa-ticket-alt", settings:"fa-cog" };
+  const tabIcons = { overview:"fa-th-large", reviews:"fa-star", favourites:"fa-heart", payments:"fa-credit-card", tickets:"fa-ticket-alt", settings:"fa-cog" };
 
   return (
     <div className="profile-page-wrap">
@@ -246,12 +273,11 @@ export default function ProfilePage({ navigate, user, setUser }) {
           {/* Stats row */}
           <div className="profile-stats-row">
             {[
-              { icon:"⭐", label:"Reviews",    value: reviews.length,  grad:"linear-gradient(135deg,rgba(232,72,85,0.25),rgba(255,107,107,0.15))" },
-              { icon:"❤️", label:"Favourites", value: favs.length,     grad:"linear-gradient(135deg,rgba(255,209,102,0.25),rgba(255,179,71,0.15))" },
-              { icon:"🗺️", label:"Visited",    value: history.length,  grad:"linear-gradient(135deg,rgba(67,97,238,0.25),rgba(114,9,183,0.15))" },
-              { icon:"💳", label:"Payments",   value: payments.length, grad:"linear-gradient(135deg,rgba(6,214,160,0.25),rgba(5,150,105,0.15))" },
+              { icon:"⭐", label:"Reviews",    value: reviews.length,  grad:"linear-gradient(135deg,rgba(232,72,85,0.25),rgba(255,107,107,0.15))", tab:"reviews" },
+              { icon:"❤️", label:"Favourites", value: favs.length,     grad:"linear-gradient(135deg,rgba(255,209,102,0.25),rgba(255,179,71,0.15))", tab:"favourites" },
+              { icon:"💳", label:"Payments",   value: payments.length, grad:"linear-gradient(135deg,rgba(6,214,160,0.25),rgba(5,150,105,0.15))", tab:"payments" },
             ].map(s => (
-              <div key={s.label} className="profile-stat-pill" style={{ background: s.grad }}>
+              <div key={s.label} className="profile-stat-pill" style={{ background: s.grad, cursor:"pointer" }} onClick={() => setTab(s.tab)}>
                 <span style={{ fontSize:"1.4rem" }}>{s.icon}</span>
                 <div>
                   <div style={{ fontWeight:900, fontSize:"1.4rem", color:"#fff", lineHeight:1 }}>{s.value}</div>
@@ -285,10 +311,9 @@ export default function ProfilePage({ navigate, user, setUser }) {
           </div>
         ) : (
           <>
-            {tab === "overview" && <OverviewTab reviews={reviews} favs={favs} history={history} payments={payments} navigate={navigate} setTab={setTab} />}
+            {tab === "overview" && <OverviewTab reviews={reviews} favs={favs} payments={payments} navigate={navigate} setTab={setTab} />}
             {tab === "reviews" && <ReviewsTab reviews={reviews} onDelete={handleDeleteReview} navigate={navigate} />}
             {tab === "favourites" && <FavouritesTab favs={favs} onRemove={handleRemoveFav} navigate={navigate} />}
-            {tab === "visited" && <VisitedTab history={history} navigate={navigate} />}
             {tab === "payments" && <PaymentsTab payments={payments} refunds={refunds} onRefund={p => setRefundModal(p)} onNewPayment={() => setPayModal({ item_name:"Custom Booking", amount:100, currency:"USD", action:"book_hotel" })} />}
             {tab === "tickets" && <TicketsTab payments={payments} />}
             {tab === "settings" && <SettingsTab form={form} setForm={setForm} onSave={handleSave} saved={saved} user={user} />}
@@ -299,8 +324,9 @@ export default function ProfilePage({ navigate, user, setUser }) {
   );
 }
 
-function OverviewTab({ reviews, favs, history, payments, navigate, setTab }) {
-  const recent = [...history].slice(0, 3);
+function OverviewTab({ reviews, favs, payments, navigate, setTab }) {
+  const { lang } = useLang();
+  const curr = LANG_CURRENCY[lang] || LANG_CURRENCY.en;
   const recentPays = [...payments].slice(0, 3);
   return (
     <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:24 }}>
@@ -326,41 +352,27 @@ function OverviewTab({ reviews, favs, history, payments, navigate, setTab }) {
 
       <div className="clay-card" style={{ padding:28 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
-          <h5 style={{ fontWeight:800, color:"var(--text)", margin:0 }}>🗺️ Recent Visits</h5>
-          <button className="clay-btn clay-btn-outline clay-btn-sm" onClick={() => setTab("visited")}>View all</button>
-        </div>
-        {recent.length === 0 ? <EmptyState icon="🗺️" msg="No visits tracked yet" /> :
-          recent.map((h,i) => (
-            <div key={i} style={{ display:"flex", gap:12, alignItems:"center", padding:"10px 0", borderBottom:"1px dashed rgba(0,0,0,0.06)" }}>
-              <span style={{ fontSize:"1.4rem" }}>{h.content_type==="hotel"?"🏨":h.content_type==="guide"?"👤":h.content_type==="transport"?"🚌":"📍"}</span>
-              <div>
-                <div style={{ fontWeight:700, fontSize:"0.85rem", color:"var(--text)" }}>{h.item_name || h.destination?.name || h.hotel?.name || h.guide?.name || "—"}</div>
-                <div style={{ fontSize:"0.75rem", color:"var(--text3)", fontWeight:600 }}>{h.content_type} · {new Date(h.visited_at).toLocaleDateString()}</div>
-              </div>
-            </div>
-          ))
-        }
-      </div>
-
-      <div className="clay-card" style={{ padding:28 }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
           <h5 style={{ fontWeight:800, color:"var(--text)", margin:0 }}>❤️ Favourites</h5>
           <button className="clay-btn clay-btn-outline clay-btn-sm" onClick={() => setTab("favourites")}>View all</button>
         </div>
-        {favs.slice(0,3).length === 0 ? <EmptyState icon="❤️" msg="No favourites yet" /> :
-          favs.slice(0,3).map(f => {
+        {favs.slice(0,4).length === 0 ? <EmptyState icon="❤️" msg="No favourites yet" /> :
+          favs.slice(0,4).map(f => {
             const item = f.destination || f.hotel || f.guide;
+            const icon = f.content_type==="hotel"?"🏨":f.content_type==="guide"?"👤":f.content_type==="transport"?"🚌":"📍";
             return (
               <div key={f.id} style={{ display:"flex", gap:12, alignItems:"center", padding:"10px 0", borderBottom:"1px dashed rgba(0,0,0,0.06)" }}>
-                <span style={{ fontSize:"1.4rem" }}>{f.content_type==="hotel"?"🏨":f.content_type==="guide"?"👤":"📍"}</span>
-                <div style={{ fontWeight:700, fontSize:"0.85rem", color:"var(--text)" }}>{item?.name || "—"}</div>
+                <span style={{ fontSize:"1.4rem" }}>{icon}</span>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontWeight:700, fontSize:"0.85rem", color:"var(--text)" }}>{item?.name || "—"}</div>
+                  <div style={{ fontSize:"0.72rem", color:"var(--text3)", fontWeight:600, textTransform:"capitalize" }}>{f.content_type}</div>
+                </div>
               </div>
             );
           })
         }
       </div>
 
-      <div className="clay-card" style={{ padding:28 }}>
+      <div className="clay-card" style={{ padding:28, gridColumn:"1/-1" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
           <h5 style={{ fontWeight:800, color:"var(--text)", margin:0 }}>💳 Recent Payments</h5>
           <button className="clay-btn clay-btn-outline clay-btn-sm" onClick={() => setTab("payments")}>View all</button>
@@ -372,7 +384,7 @@ function OverviewTab({ reviews, favs, history, payments, navigate, setTab }) {
                 <div style={{ fontWeight:700, fontSize:"0.85rem", color:"var(--text)" }}>{p.booking?.item_name || p.method}</div>
                 <div style={{ fontSize:"0.75rem", color:"var(--text3)", fontWeight:600 }}>{p.method?.toUpperCase()} · {new Date(p.created_at).toLocaleDateString()}</div>
               </div>
-              <span style={{ fontWeight:900, color:"var(--clay-green)", fontSize:"0.95rem" }}>${p.amount}</span>
+              <span style={{ fontWeight:900, color:"var(--clay-green)", fontSize:"0.95rem" }}>{fmtAmt(p.amount, curr)}</span>
             </div>
           ))
         }
@@ -427,36 +439,52 @@ function FavouritesTab({ favs, onRemove, navigate }) {
       <EmptyState icon="❤️" msg="No favourites saved yet." cta="Explore destinations" onCta={() => navigate("destinations")} />
     </div>
   );
+  const typeIcon = { destination:"📍", hotel:"🏨", guide:"👤", transport:"🚌" };
+  const typeColor = { destination:"red", hotel:"blue", guide:"purple", transport:"green" };
+  const typePage = { destination:"destination-detail", hotel:"hotel-detail", guide:"guide-detail" };
   return (
     <div>
       <div style={{ display:"flex", gap:10, marginBottom:24, flexWrap:"wrap" }}>
-        {["all","destination","hotel","guide"].map(f => (
+        {["all","destination","hotel","guide","transport"].map(f => (
           <button key={f} className={`filter-chip${filter===f?" active":""}`} onClick={() => setFilter(f)}>
-            {f==="all"?"All":f.charAt(0).toUpperCase()+f.slice(1)}s ({f==="all"?favs.length:favs.filter(x=>x.content_type===f).length})
+            {typeIcon[f]||"🌐"} {f==="all"?"All":f.charAt(0).toUpperCase()+f.slice(1)}s ({f==="all"?favs.length:favs.filter(x=>x.content_type===f).length})
           </button>
         ))}
       </div>
       <div className="grid-3">
         {filtered.map(fav => {
           const item = fav.destination || fav.hotel || fav.guide;
-          const pg = fav.content_type === "destination" ? "destination-detail" : fav.content_type === "hotel" ? "hotel-detail" : "guide-detail";
+          const pg = typePage[fav.content_type];
           return (
             <div key={fav.id} className="clay-card fav-card">
-              {item?.image && <img src={item.image} alt={item.name} style={{ width:"100%", height:140, objectFit:"cover", borderRadius:"20px 20px 0 0" }} />}
+              {item?.image && <img src={item.image} alt={item.name} style={{ width:"100%", height:160, objectFit:"cover", borderRadius:"20px 20px 0 0" }} />}
+              {!item?.image && (
+                <div style={{ width:"100%", height:100, borderRadius:"20px 20px 0 0", background:"linear-gradient(135deg,var(--clay-red),var(--clay-purple))", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"2.5rem" }}>
+                  {typeIcon[fav.content_type]||"❤️"}
+                </div>
+              )}
               <div style={{ padding:18 }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
                   <div>
-                    <Badge color={fav.content_type==="hotel"?"blue":fav.content_type==="guide"?"purple":"red"}>{fav.content_type}</Badge>
-                    <h6 style={{ fontWeight:800, color:"var(--text)", margin:"6px 0 0" }}>{item?.name || "—"}</h6>
+                    <Badge color={typeColor[fav.content_type]||"blue"}>{fav.content_type}</Badge>
+                    <h6 style={{ fontWeight:800, color:"var(--text)", margin:"6px 0 0" }}>{item?.name || fav.item_name || "Transport Route"}</h6>
                   </div>
                   <button className="fav-remove-btn" onClick={() => onRemove(fav)} title="Remove">
                     <i className="fas fa-heart-broken"></i>
                   </button>
                 </div>
-                <button className="clay-btn clay-btn-outline clay-btn-sm clay-btn-full" style={{ marginTop:8 }}
-                  onClick={() => navigate(pg, { id: item?.id })}>
-                  View Details
-                </button>
+                {pg && item?.id && (
+                  <button className="clay-btn clay-btn-outline clay-btn-sm clay-btn-full" style={{ marginTop:8 }}
+                    onClick={() => navigate(pg, { id: item.id })}>
+                    View Details
+                  </button>
+                )}
+                {fav.content_type === "transport" && (
+                  <button className="clay-btn clay-btn-outline clay-btn-sm clay-btn-full" style={{ marginTop:8 }}
+                    onClick={() => navigate("transport")}>
+                    View Transport
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -518,6 +546,8 @@ function VisitedTab({ history, navigate }) {
 }
 
 function PaymentsTab({ payments, refunds, onRefund, onNewPayment }) {
+  const { lang } = useLang();
+  const curr = LANG_CURRENCY[lang] || LANG_CURRENCY.en;
   const [view, setView] = useState("payments");
   const statusColor = { completed:"green", pending:"gold", failed:"red", refunded:"blue", requested:"gold", approved:"blue", processed:"green", rejected:"red" };
   const methodIcon = { visa:"fa-cc-visa", mastercard:"fa-cc-mastercard", esewa:"fa-wallet", khalti:"fa-wallet" };
@@ -552,7 +582,7 @@ function PaymentsTab({ payments, refunds, onRefund, onNewPayment }) {
                     </div>
                   </div>
                   <div style={{ display:"flex", gap:10, alignItems:"center" }}>
-                    <span style={{ fontWeight:900, fontSize:"1.1rem", color:"var(--clay-green)" }}>${p.amount}</span>
+                    <span style={{ fontWeight:900, fontSize:"1.1rem", color:"var(--clay-green)" }}>{fmtAmt(p.amount, curr)}</span>
                     <Badge color={statusColor[p.status]||"blue"}>{p.status}</Badge>
                     {canRefund && (
                       <button className="clay-btn clay-btn-outline clay-btn-sm" style={{ color:"var(--clay-red)", borderColor:"rgba(232,72,85,0.3)" }}
@@ -575,7 +605,7 @@ function PaymentsTab({ payments, refunds, onRefund, onNewPayment }) {
             <div key={r.id} className="clay-card" style={{ padding:20 }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12 }}>
                 <div>
-                  <div style={{ fontWeight:800, color:"var(--text)", marginBottom:4 }}>Refund #{r.id} — ${r.amount}</div>
+                  <div style={{ fontWeight:800, color:"var(--text)", marginBottom:4 }}>Refund #{r.id} — {fmtAmt(r.amount, curr)}</div>
                   <div style={{ fontSize:"0.82rem", color:"var(--text3)", fontWeight:600, marginBottom:4 }}>{r.reason}</div>
                   {r.admin_note && <div style={{ fontSize:"0.78rem", color:"var(--clay-blue)", fontWeight:700 }}>Admin: {r.admin_note}</div>}
                   <small style={{ color:"var(--text4)", fontWeight:600 }}>{new Date(r.created_at).toLocaleDateString()}</small>
@@ -631,6 +661,8 @@ function EmptyState({ icon, msg, cta, onCta }) {
 }
 
 function TicketsTab({ payments }) {
+  const { lang } = useLang();
+  const curr = LANG_CURRENCY[lang] || LANG_CURRENCY.en;
   const booked = payments.filter(p => p.booking && ["book_hotel","book_guide","book_transport"].includes(p.booking?.action));
   const methodIcon = { visa:"fa-cc-visa", mastercard:"fa-cc-mastercard", esewa:"fa-wallet", khalti:"fa-wallet" };
   const actionLabel = { book_hotel:"🏨 Hotel", book_guide:"👤 Guide", book_transport:"🚌 Transport" };
@@ -657,7 +689,7 @@ function TicketsTab({ payments }) {
                 <h5 style={{ color:"#fff", fontWeight:900, margin:0, fontFamily:"'Playfair Display',serif" }}>{b?.item_name || "Booking"}</h5>
               </div>
               <div style={{ textAlign:"right" }}>
-                <div style={{ color: isRefunded ? "#9ca3af" : "var(--clay-gold)", fontWeight:900, fontSize:"1.4rem" }}>${p.amount}</div>
+                <div style={{ color: isRefunded ? "#9ca3af" : "var(--clay-gold)", fontWeight:900, fontSize:"1.4rem" }}>{fmtAmt(p.amount, curr)}</div>
                 <span style={{ fontSize:"0.7rem", fontWeight:800, padding:"3px 10px", borderRadius:99,
                   background: isRefunded ? "rgba(107,114,128,0.3)" : p.status==="completed" ? "rgba(6,214,160,0.2)" : "rgba(255,209,102,0.2)",
                   color: isRefunded ? "#9ca3af" : p.status==="completed" ? "#06d6a0" : "#f59e0b",

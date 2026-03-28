@@ -28,6 +28,7 @@ urlpatterns = [
 
     # Favorites
     path("favorites/", views.favorites),
+    path("favorites/check/", views.check_favorite),
 
     # Visit History
     path("visit-history/", views.visit_history),
@@ -54,4 +55,7 @@ urlpatterns = [
     # Newsletter & Contact
     path("newsletter/", views.newsletter_subscribe),
     path("contact/", views.contact),
+
+    # Unsplash proxy
+    path("unsplash/", views.unsplash_image),
 ]

@@ -26,6 +26,8 @@ class Destination(models.Model):
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
     image = models.URLField(max_length=500, blank=True)
+    image_credit_name = models.CharField(max_length=255, blank=True)
+    image_credit_link = models.URLField(max_length=500, blank=True)
     altitude = models.CharField(max_length=50, blank=True)
     difficulty = models.CharField(max_length=50, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -59,6 +61,8 @@ class Hotel(models.Model):
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
     image = models.URLField(max_length=500, blank=True)
+    image_credit_name = models.CharField(max_length=255, blank=True)
+    image_credit_link = models.URLField(max_length=500, blank=True)
 
     def __str__(self): return self.name
 
@@ -127,12 +131,13 @@ class EmergencyContact(models.Model):
 
 
 class Favorite(models.Model):
-    TYPES = [("destination","Destination"),("hotel","Hotel"),("guide","Guide")]
+    TYPES = [("destination","Destination"),("hotel","Hotel"),("guide","Guide"),("transport","Transport")]
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="favorites")
     content_type = models.CharField(max_length=20, choices=TYPES)
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE, null=True, blank=True)
     hotel = models.ForeignKey(Hotel, on_delete=models.CASCADE, null=True, blank=True)
     guide = models.ForeignKey(Guide, on_delete=models.CASCADE, null=True, blank=True)
+    item_name = models.CharField(max_length=300, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { hotels, guides, destinations, mockReviews } from "../data/mockData";
+import { hotels as mockHotels, guides as mockGuides, destinations as mockDests } from "../data/mockData";
 import { HotelCard, GuideCard, ReviewItem, ReviewForm, MapEmbed } from "../components/Cards";
+import NepalImage from "../components/common/NepalImage";
 import { api } from "../api";
 import { useLang } from "../context/LangContext";
 import { BookingModal } from "../components/BookingModal";
@@ -12,9 +13,22 @@ export function HotelsPage({ navigate }) {
   const [selStars, setSelStars] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [sort, setSort] = useState("-rating");
+  const [hotels, setHotels] = useState(mockHotels);
+  const [destinations, setDestinations] = useState(mockDests);
+
+  useEffect(() => {
+    api.hotels().then(data => {
+      const items = Array.isArray(data) ? data : data?.results;
+      if (items?.length) setHotels(items);
+    }).catch(() => {});
+    api.destinations().then(data => {
+      const items = Array.isArray(data) ? data : data?.results;
+      if (items?.length) setDestinations(items);
+    }).catch(() => {});
+  }, []);
 
   let filtered = hotels
-    .filter((h) => !selDest || String(h.destination.id) === selDest)
+    .filter((h) => !selDest || String(h.destination?.id) === selDest)
     .filter((h) => !selStars || h.stars === parseInt(selStars))
     .filter((h) => !maxPrice || h.price_per_night <= parseInt(maxPrice));
 
@@ -122,8 +136,8 @@ export function HotelsPage({ navigate }) {
 /* ─── HOTEL DETAIL ─── */
 export function HotelDetailPage({ navigate, pageParams, user }) {
   const { t } = useLang();
-  const hotel = hotels.find((h) => h.id === pageParams.id) || hotels[0];
-  const nearby = hotels.filter((h) => h.id !== hotel.id && h.destination.city === hotel.destination.city);
+  const [hotel, setHotel] = useState(mockHotels.find((h) => h.id === pageParams.id) || mockHotels[0]);
+  const nearby = mockHotels.filter((h) => h.id !== hotel.id && h.destination?.city === hotel.destination?.city);
 
   const [reviews, setReviews] = useState([]);
   const [saved, setSaved] = useState(false);
@@ -131,36 +145,41 @@ export function HotelDetailPage({ navigate, pageParams, user }) {
   const [bookingDone, setBookingDone] = useState(null);
 
   useEffect(() => {
-    // Load real reviews from backend
-    api.destination(hotel.destination?.slug || "").catch(() => null);
-    setReviews(mockReviews);
-    // Track visit
-    if (user && hotel.id) {
-      api.addVisit({ content_type: "hotel", hotel_id: hotel.id, item_name: hotel.name }).catch(() => {});
+    if (hotel.slug) {
+      api.hotel(hotel.slug).then(d => { if (d?.id) setHotel(d); }).catch(() => {});
     }
-  }, [hotel.id]);
+    fetch(`http://127.0.0.1:8000/api/hotels/${hotel.slug || hotel.id}/reviews/`)
+      .then(r => r.json()).then(d => { if (Array.isArray(d)) setReviews(d); }).catch(() => setReviews([]));
+    if (user) {
+      api.addVisit({ content_type: "hotel", hotel_id: hotel.id, item_name: hotel.name }).catch(() => {});
+      api.checkFavorite("hotel", hotel.id).then(r => setSaved(!!r?.is_favourite)).catch(() => {});
+    }
+  }, [hotel.id, user?.id]);
 
   const handleSave = async () => {
     if (!user) { navigate("login"); return; }
     try { await api.toggleFavorite({ content_type: "hotel", id: hotel.id }); } catch {}
     setSaved(s => !s);
+    if (!saved) {
+      navigate("profile", { tab: "favourites" });
+      setTimeout(() => window.dispatchEvent(new CustomEvent("nw-data-changed")), 0);
+    }
   };
 
   const handleReviewSubmit = async (r) => {
+    if (!user) { navigate("login"); return; }
     try {
-      await api.submitReview({ content_type: "hotel", hotel: hotel.id, rating: r.rating, comment: r.comment });
-      setReviews(prev => [{ ...r, id: Date.now(), user, created_at: new Date().toLocaleDateString() }, ...prev]);
+      const saved_review = await api.submitReview({ content_type: "hotel", hotel_id: hotel.id, rating: r.rating, comment: r.comment });
+      setReviews(prev => [saved_review, ...prev]);
+      navigate("profile", { tab: "reviews" });
+      setTimeout(() => window.dispatchEvent(new CustomEvent("nw-data-changed")), 0);
     } catch {}
   };
 
   return (
     <div>
       <div className="detail-hero">
-        {hotel.image ? (
-          <img src={hotel.image} alt={hotel.name} />
-        ) : (
-          <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#0f172a,#1e3a5f)" }}></div>
-        )}
+        <NepalImage item={hotel} entityType="hotel" style={{ width: "100%", height: "100%" }} showCredit={true} />
         <div className="detail-hero-overlay"></div>
         <div className="detail-hero-content">
           <div className="container">
@@ -368,7 +387,7 @@ export function HotelDetailPage({ navigate, pageParams, user }) {
                       {h.image ? (
                         <img src={h.image} alt={h.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       ) : (
-                        <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#f59e0b,#e67e22)" }}></div>
+                        <NepalImage item={h} entityType="hotel" style={{ width: "100%", height: "100%" }} />
                       )}
                     </div>
                     <div>
@@ -403,7 +422,20 @@ export function GuidesPage({ navigate }) {
   const { t } = useLang();
   const [selDest, setSelDest] = useState("");
   const [selLang, setSelLang] = useState("");
+  const [guides, setGuides] = useState(mockGuides);
+  const [destinations, setDestinations] = useState(mockDests);
   const langs = ["English", "French", "Spanish", "German", "Arabic", "Chinese", "Hindi", "Japanese", "Tibetan", "Nepali"];
+
+  useEffect(() => {
+    api.guides().then(data => {
+      const items = Array.isArray(data) ? data : data?.results;
+      if (items?.length) setGuides(items);
+    }).catch(() => {});
+    api.destinations().then(data => {
+      const items = Array.isArray(data) ? data : data?.results;
+      if (items?.length) setDestinations(items);
+    }).catch(() => {});
+  }, []);
 
   let filtered = guides
     .filter((g) => !selDest || g.destinations?.some((d) => String(d.id) === selDest))
@@ -498,30 +530,42 @@ export function GuidesPage({ navigate }) {
 /* ─── GUIDE DETAIL ─── */
 export function GuideDetailPage({ navigate, pageParams, user }) {
   const { t } = useLang();
-  const guide = guides.find((g) => g.id === pageParams.id) || guides[0];
+  const [guide, setGuide] = useState(mockGuides.find((g) => g.id === pageParams.id) || mockGuides[0]);
   const langs = guide.languages?.split(",").map((l) => l.trim()) || [];
-  const [reviews, setReviews] = useState(mockReviews);
+  const [reviews, setReviews] = useState([]);
   const [showBooking, setShowBooking] = useState(false);
   const [bookingDone, setBookingDone] = useState(null);
   const [guideSaved, setGuideSaved] = useState(false);
 
-  // Track visit when page loads
   useEffect(() => {
-    if (user && guide.id) {
-      api.addVisit({ content_type: "guide", guide_id: guide.id, item_name: guide.name }).catch(() => {});
+    if (guide.slug) {
+      api.guide(guide.slug).then(d => { if (d?.id) setGuide(d); }).catch(() => {});
     }
-  }, [guide.id]);
+    fetch(`http://127.0.0.1:8000/api/guides/${guide.slug || guide.id}/reviews/`)
+      .then(r => r.json()).then(d => { if (Array.isArray(d)) setReviews(d); }).catch(() => setReviews([]));
+    if (user) {
+      api.addVisit({ content_type: "guide", guide_id: guide.id, item_name: guide.name }).catch(() => {});
+      api.checkFavorite("guide", guide.id).then(r => setGuideSaved(!!r?.is_favourite)).catch(() => {});
+    }
+  }, [guide.id, user?.id]);
 
   const handleGuideSave = async () => {
     if (!user) { navigate("login"); return; }
     try { await api.toggleFavorite({ content_type: "guide", id: guide.id }); } catch {}
     setGuideSaved(s => !s);
+    if (!guideSaved) {
+      navigate("profile", { tab: "favourites" });
+      setTimeout(() => window.dispatchEvent(new CustomEvent("nw-data-changed")), 0);
+    }
   };
 
   const handleReviewSubmit = async (r) => {
+    if (!user) { navigate("login"); return; }
     try {
-      await api.submitReview({ content_type: "guide", guide: guide.id, rating: r.rating, comment: r.comment });
-      setReviews(prev => [{ ...r, id: Date.now(), user, created_at: new Date().toLocaleDateString() }, ...prev]);
+      const saved_review = await api.submitReview({ content_type: "guide", guide_id: guide.id, rating: r.rating, comment: r.comment });
+      setReviews(prev => [saved_review, ...prev]);
+      navigate("profile", { tab: "reviews" });
+      setTimeout(() => window.dispatchEvent(new CustomEvent("nw-data-changed")), 0);
     } catch {}
   };
 
@@ -652,7 +696,7 @@ export function GuideDetailPage({ navigate, pageParams, user }) {
                         {dest.image ? (
                           <img src={dest.image} alt={dest.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                         ) : (
-                          <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#1e3a5f,#2563eb)" }}></div>
+                          <NepalImage item={dest} entityType="destination" style={{ width: "100%", height: "100%" }} />
                         )}
                       </div>
                       <div>
@@ -716,20 +760,6 @@ export function GuideDetailPage({ navigate, pageParams, user }) {
                 </small>
               </div>
 
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ display: "flex", gap: 10, marginBottom: 10, color: "var(--text2)", fontSize: "0.9rem", fontWeight: 600 }}>
-                  📞{" "}
-                  <a href={`tel:${guide.phone}`} style={{ color: "var(--text2)", textDecoration: "none" }}>
-                    {guide.phone}
-                  </a>
-                </div>
-                <div style={{ display: "flex", gap: 10, color: "var(--text2)", fontSize: "0.9rem", fontWeight: 600 }}>
-                  ✉️{" "}
-                  <a href={`mailto:${guide.email}`} style={{ color: "var(--text2)", textDecoration: "none" }}>
-                    {guide.email}
-                  </a>
-                </div>
-              </div>
 
               {bookingDone && (
                 <div style={{ padding:"10px 14px",background:"rgba(6,214,160,0.12)",border:"3px solid rgba(6,214,160,0.25)",borderRadius:12,marginBottom:12,color:"var(--clay-green)",fontWeight:800,fontSize:"0.85rem" }}>
@@ -740,14 +770,6 @@ export function GuideDetailPage({ navigate, pageParams, user }) {
               <button className="clay-btn clay-btn-red clay-btn-full mb-8" onClick={() => { if (!user) { navigate("login"); return; } setShowBooking(true); }}>
                 <i className="fas fa-calendar-check"></i> {t("book_now")}
               </button>
-
-              <a
-                href={`mailto:${guide.email}?subject=Booking Request`}
-                className="clay-btn clay-btn-green clay-btn-full mb-8"
-                style={{ textDecoration: "none" }}
-              >
-                ✉️ {t("contact_guide")}
-              </a>
 
               <button className="clay-btn clay-btn-outline clay-btn-full" onClick={handleGuideSave}>
                 {guideSaved ? "❤️" : "🤍"} {guideSaved ? `${t("save_favorite")} ✓` : t("save_favorite")}

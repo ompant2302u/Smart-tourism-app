@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLang } from "../context/LangContext";
+import NepalImage from "./common/NepalImage";
 
 export function StarRating({ rating, size = "1rem" }) {
   return (
@@ -39,23 +40,11 @@ export function DestinationCard({ dest, navigate, delay = 0 }) {
       onKeyDown={(e) => e.key === "Enter" && navigate("destination-detail", { id: dest.id })}
     >
       <div className="dest-card-img">
-        {dest.image ? (
-          <img src={dest.image} alt={destName} loading="lazy" />
-        ) : (
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              background: "linear-gradient(135deg,#141e30,#243b55,#2b5876)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "3rem",
-            }}
-          >
-            🏔️
-          </div>
-        )}
+        <NepalImage
+          item={dest}
+          entityType="destination"
+          style={{ width: "100%", height: "100%" }}
+        />
 
         <div className="dest-card-overlay"></div>
 
@@ -111,30 +100,20 @@ export function DestinationCard({ dest, navigate, delay = 0 }) {
               {t("from")} ${dest.entry_fee}
             </span>
           ) : (
-            <span
-              className="badge badge-green"
-              style={{
-                background: "linear-gradient(135deg,#11998e,#38ef7d)",
-                color: "#fff",
-                border: "1px solid rgba(255,255,255,0.15)",
-              }}
-            >
+            <span className="badge badge-green" style={{ background:"linear-gradient(135deg,#11998e,#38ef7d)", color:"#fff", border:"1px solid rgba(255,255,255,0.15)" }}>
               {t("free_entry")}
             </span>
           )}
-
-          <span
-            className="clay-btn clay-btn-red clay-btn-sm"
-            style={{
-              pointerEvents: "none",
-              background: "linear-gradient(135deg,#ff5f6d,#ffc371)",
-              color: "#fff",
-              border: "none",
-              boxShadow: "0 8px 20px rgba(255,95,109,0.25)",
-            }}
-          >
-            {t("explore")}
-          </span>
+          {dest.difficulty && (
+            <span style={{
+              fontSize:"0.72rem", fontWeight:800, padding:"4px 10px", borderRadius:99,
+              background: dest.difficulty==="Easy" ? "rgba(6,214,160,0.12)" : dest.difficulty==="Moderate" ? "rgba(255,209,102,0.2)" : dest.difficulty==="Challenging" ? "rgba(255,95,109,0.12)" : "rgba(232,72,85,0.12)",
+              color: dest.difficulty==="Easy" ? "var(--clay-green)" : dest.difficulty==="Moderate" ? "#b8860b" : dest.difficulty==="Challenging" ? "var(--clay-red)" : "var(--clay-red)",
+              border:"2px solid currentColor"
+            }}>
+              {dest.difficulty}
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -158,23 +137,11 @@ export function HotelCard({ hotel, navigate, delay = 0 }) {
       onKeyDown={(e) => e.key === "Enter" && navigate("hotel-detail", { id: hotel.id })}
     >
       <div className="dest-card-img">
-        {hotel.image ? (
-          <img src={hotel.image} alt={hotel.name} loading="lazy" />
-        ) : (
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              background: "linear-gradient(135deg,#f7971e,#ffd200,#ffb347)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "3rem",
-            }}
-          >
-            🏨
-          </div>
-        )}
+        <NepalImage
+          item={hotel}
+          entityType="hotel"
+          style={{ width: "100%", height: "100%" }}
+        />
 
         <div className="dest-card-overlay"></div>
 
@@ -271,18 +238,7 @@ export function HotelCard({ hotel, navigate, delay = 0 }) {
             <small style={{ color: "var(--text3)", fontWeight: 700 }}>{t("per_night")}</small>
           </div>
 
-          <span
-            className="clay-btn clay-btn-gold clay-btn-sm"
-            style={{
-              pointerEvents: "none",
-              background: "linear-gradient(135deg,#36d1dc,#5b86e5)",
-              color: "#fff",
-              border: "none",
-              boxShadow: "0 8px 20px rgba(91,134,229,0.22)",
-            }}
-          >
-            {t("view")}
-          </span>
+
         </div>
       </div>
     </div>
@@ -375,18 +331,7 @@ export function GuideCard({ guide, navigate, delay = 0 }) {
           <small style={{ color: "var(--text3)", fontWeight: 700 }}>{t("per_day")}</small>
         </div>
 
-        <span
-          className="clay-btn clay-btn-green clay-btn-sm"
-          style={{
-            pointerEvents: "none",
-            background: "linear-gradient(135deg,#11998e,#38ef7d)",
-            color: "#fff",
-            border: "none",
-            boxShadow: "0 8px 20px rgba(17,153,142,0.22)",
-          }}
-        >
-          {t("view_profile")}
-        </span>
+
       </div>
     </div>
   );

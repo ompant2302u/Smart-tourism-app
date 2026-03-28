@@ -6,7 +6,10 @@ from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-import random, uuid
+import random, uuid, requests
+from django.conf import settings
+from django.core.cache import cache
+from django.http import JsonResponse
 
 from .models import (
     Category, Destination, Hotel, Guide, Review,
@@ -103,6 +106,11 @@ class HotelViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(Q(name__icontains=q["search"]))
         return qs.order_by(q.get("sort", "-rating"))
 
+    @action(detail=True, methods=["get"])
+    def reviews(self, request, slug=None):
+        hotel = self.get_object()
+        return Response(ReviewSerializer(hotel.reviews.select_related("user"), many=True).data)
+
 
 # ================= GUIDES =================
 
@@ -119,6 +127,11 @@ class GuideViewSet(viewsets.ReadOnlyModelViewSet):
         if q.get("max_price"):
             qs = qs.filter(price_per_day__lte=q["max_price"])
         return qs.order_by(q.get("sort", "-rating"))
+
+    @action(detail=True, methods=["get"])
+    def reviews(self, request, slug=None):
+        guide = self.get_object()
+        return Response(ReviewSerializer(guide.reviews.select_related("user"), many=True).data)
 
 
 # ================= CATEGORIES =================
@@ -157,16 +170,24 @@ def submit_review(request):
     s = ReviewSerializer(data=request.data)
     s.is_valid(raise_exception=True)
     review = s.save(user=request.user)
-    # Log to BookingLog
+    # Determine item name for the log
+    if review.destination:
+        item_name = review.destination.name
+    elif review.hotel:
+        item_name = review.hotel.name
+    elif review.guide:
+        item_name = review.guide.name
+    else:
+        item_name = "Review"
     BookingLog.objects.create(
         action="save_dest",
         user=request.user,
         email=request.user.email,
-        item_name=request.data.get("comment", "")[:100],
+        item_name=item_name,
         ip_address=get_ip(request),
         extra_data={"review_id": review.id, "rating": review.rating, "type": review.content_type},
     )
-    return Response(s.data, status=201)
+    return Response(ReviewSerializer(review).data, status=201)
 
 
 @api_view(["DELETE"])
@@ -187,6 +208,24 @@ def my_reviews(request):
     return Response(ReviewSerializer(reviews, many=True).data)
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def check_favorite(request):
+    """Returns {is_favourite: bool} for a given content_type + id."""
+    ct = request.query_params.get("content_type")
+    item_id = request.query_params.get("id")
+    if not ct or not item_id:
+        return Response({"is_favourite": False})
+    filter_data = {"user": request.user, "content_type": ct}
+    if ct == "destination":
+        filter_data["destination_id"] = item_id
+    elif ct == "hotel":
+        filter_data["hotel_id"] = item_id
+    elif ct == "guide":
+        filter_data["guide_id"] = item_id
+    return Response({"is_favourite": Favorite.objects.filter(**filter_data).exists()})
+
+
 # ================= FAVORITES =================
 
 @api_view(["GET", "POST", "DELETE"])
@@ -200,20 +239,27 @@ def favorites(request):
         s = FavoriteSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         fav = s.save(user=request.user)
+        item = fav.destination or fav.hotel or fav.guide
+        BookingLog.objects.create(
+            action="save_dest",
+            user=request.user,
+            email=request.user.email,
+            item_name=item.name if item else "Favourite",
+            ip_address=get_ip(request),
+            extra_data={"favourite_id": fav.id, "type": fav.content_type},
+        )
         return Response(FavoriteSerializer(fav).data, status=201)
 
     ct = request.data.get("content_type")
     item_id = request.data.get("id")
     filter_data = {"user": request.user, "content_type": ct}
-    if ct == "destination":
+    if ct == "destination" and item_id:
         filter_data["destination_id"] = item_id
-    elif ct == "hotel":
+    elif ct == "hotel" and item_id:
         filter_data["hotel_id"] = item_id
-    elif ct == "guide":
+    elif ct == "guide" and item_id:
         filter_data["guide_id"] = item_id
     deleted, _ = Favorite.objects.filter(**filter_data).delete()
-    if not deleted:
-        return Response({"error": "Not found"}, status=404)
     return Response(status=204)
 
 
@@ -228,8 +274,8 @@ def visit_history(request):
 
     s = VisitHistorySerializer(data=request.data)
     s.is_valid(raise_exception=True)
-    s.save(user=request.user)
-    return Response(s.data, status=201)
+    visit = s.save(user=request.user)
+    return Response(VisitHistorySerializer(visit).data, status=201)
 
 
 # ================= PAYMENTS =================
@@ -526,3 +572,102 @@ def admin_refunds(request, pk=None):
                 refund.payment.booking.status = "refunded"
                 refund.payment.booking.save()
     return Response(RefundSerializer(refund).data)
+
+
+# ================= UNSPLASH PROXY =================
+
+UNSPLASH_QUERIES = {
+    # destinations
+    "Everest Base Camp": "Everest Base Camp Nepal",
+    "Pokhara": "Pokhara lake Nepal",
+    "Annapurna": "Annapurna Circuit Nepal",
+    "Kathmandu": "Kathmandu Durbar Square Nepal",
+    "Chitwan": "Chitwan National Park Nepal",
+    "Lumbini": "Lumbini Nepal Buddhist",
+    "Mustang": "Upper Mustang Nepal desert",
+    "Langtang": "Langtang Valley Nepal",
+    "Manaslu": "Manaslu Circuit Nepal",
+    "Bhaktapur": "Bhaktapur Durbar Square Nepal",
+    "Patan": "Patan Durbar Square Nepal",
+    "Nagarkot": "Nagarkot Nepal Himalaya sunrise",
+    "Bandipur": "Bandipur Nepal village",
+    "Ilam": "Ilam tea garden Nepal",
+    "Rara Lake": "Rara Lake Nepal",
+    # transport types
+    "helicopter": "helicopter Nepal Himalaya mountains",
+    "bus": "tourist bus Nepal mountain road",
+    "jeep": "jeep Nepal mountain off-road",
+    "flight": "Nepal domestic flight mountain",
+    "bike": "motorbike Nepal mountain highway",
+    "cable_car": "cable car Nepal Manakamana",
+    "boat": "boat Phewa Lake Pokhara Nepal",
+    "trekking": "trekking Nepal Himalaya trail",
+}
+
+UNSPLASH_FALLBACK = "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800"
+
+
+def _fetch_unsplash(query, cache_key):
+    cached = cache.get(cache_key)
+    if cached:
+        return cached
+    key = getattr(settings, "UNSPLASH_ACCESS_KEY", "")
+    if not key:
+        return {"url": UNSPLASH_FALLBACK, "alt": query, "credit": None}
+    try:
+        r = requests.get(
+            "https://api.unsplash.com/search/photos",
+            params={"query": query, "per_page": 1, "orientation": "landscape", "content_filter": "high"},
+            headers={"Authorization": f"Client-ID {key}"},
+            timeout=5,
+        )
+        if r.status_code == 200:
+            results = r.json().get("results", [])
+            if results:
+                p = results[0]
+                result = {
+                    "url": p["urls"]["regular"],
+                    "alt": p.get("alt_description") or query,
+                    "credit": {"name": p["user"]["name"], "link": p["user"]["links"]["html"]},
+                }
+                cache.set(cache_key, result, timeout=86400)
+                return result
+    except Exception:
+        pass
+    return {"url": UNSPLASH_FALLBACK, "alt": query, "credit": None}
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def unsplash_image(request):
+    """Proxy Unsplash search — keeps API key server-side."""
+    name = request.query_params.get("name", "").strip()
+    entity_type = request.query_params.get("type", "destination")
+    if not name:
+        return Response({"error": "name required"}, status=400)
+    query = UNSPLASH_QUERIES.get(name, f"{name} Nepal {entity_type}")
+    cache_key = f"unsplash_{entity_type}_{name.lower().replace(' ', '_')}"
+    return Response(_fetch_unsplash(query, cache_key))
+
+
+def populate_images():
+    """Call once after seeding: fills image field for all Destinations and Hotels."""
+    for dest in Destination.objects.filter(image=""):
+        data = _fetch_unsplash(
+            UNSPLASH_QUERIES.get(dest.name, f"{dest.name} Nepal"),
+            f"unsplash_destination_{dest.name.lower().replace(' ', '_')}",
+        )
+        dest.image = data["url"]
+        dest.image_credit_name = (data["credit"] or {}).get("name", "")
+        dest.image_credit_link = (data["credit"] or {}).get("link", "")
+        dest.save(update_fields=["image", "image_credit_name", "image_credit_link"])
+
+    for hotel in Hotel.objects.filter(image=""):
+        data = _fetch_unsplash(
+            f"{hotel.name} hotel Nepal",
+            f"unsplash_hotel_{hotel.name.lower().replace(' ', '_')}",
+        )
+        hotel.image = data["url"]
+        hotel.image_credit_name = (data["credit"] or {}).get("name", "")
+        hotel.image_credit_link = (data["credit"] or {}).get("link", "")
+        hotel.save(update_fields=["image", "image_credit_name", "image_credit_link"])

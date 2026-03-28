@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { destinations, hotels, guides, safetyAlerts, emergencyContacts, mockReviews } from "../data/mockData";
+import { useState, useEffect } from "react";
+import { destinations as mockDests, hotels as mockHotels, guides as mockGuides, safetyAlerts, emergencyContacts } from "../data/mockData";
 import { DestinationCard, HotelCard, GuideCard } from "../components/Cards";
 import { api, saveToken, clearToken } from "../api";
 import { useLang } from "../context/LangContext";
@@ -10,35 +10,31 @@ export function SearchPage({ navigate, pageParams }) {
   const [query, setQuery] = useState(pageParams?.q || "");
   const [filter, setFilter] = useState("all");
   const [submitted, setSubmitted] = useState(!!pageParams?.q);
+  const [apiResults, setApiResults] = useState(null);
+  const [searching, setSearching] = useState(false);
+
+  // Search backend when submitted
+  useEffect(() => {
+    if (!submitted || !query.trim()) return;
+    setSearching(true);
+    api.search(query.trim()).then(data => {
+      setApiResults(data);
+    }).catch(() => setApiResults(null)).finally(() => setSearching(false));
+  }, [submitted, query]);
 
   const q = query.toLowerCase().trim();
-  const results =
-    submitted && q
-      ? {
-          destinations: destinations.filter(
-            (d) =>
-              d.name.toLowerCase().includes(q) ||
-              d.city.toLowerCase().includes(q) ||
-              d.short_description?.toLowerCase().includes(q)
-          ),
-          hotels: hotels.filter(
-            (h) =>
-              h.name.toLowerCase().includes(q) ||
-              h.destination.city.toLowerCase().includes(q)
-          ),
-          guides: guides.filter(
-            (g) =>
-              g.name.toLowerCase().includes(q) ||
-              g.specialties?.toLowerCase().includes(q) ||
-              g.languages?.toLowerCase().includes(q)
-          ),
-        }
-      : null;
 
-  const total = results
-    ? results.destinations.length + results.hotels.length + results.guides.length
-    : 0;
+  // Merge backend results with mock fallback
+  const results = submitted && q ? {
+    destinations: apiResults?.destinations?.length ? apiResults.destinations
+      : mockDests.filter(d => d.name.toLowerCase().includes(q) || d.city.toLowerCase().includes(q) || d.short_description?.toLowerCase().includes(q)),
+    hotels: apiResults?.hotels?.length ? apiResults.hotels
+      : mockHotels.filter(h => h.name.toLowerCase().includes(q) || h.destination?.city?.toLowerCase().includes(q)),
+    guides: apiResults?.guides?.length ? apiResults.guides
+      : mockGuides.filter(g => g.name.toLowerCase().includes(q) || g.specialties?.toLowerCase().includes(q) || g.languages?.toLowerCase().includes(q)),
+  } : null;
 
+  const total = results ? results.destinations.length + results.hotels.length + results.guides.length : 0;
   const show = (k) => filter === "all" || filter === k;
 
   return (
@@ -92,7 +88,13 @@ export function SearchPage({ navigate, pageParams }) {
       </div>
 
       <div className="container" style={{ padding: "60px 24px" }}>
-        {submitted && results ? (
+        {searching && (
+          <div style={{ textAlign:"center", padding:60 }}>
+            <div className="loader-spinner" style={{ margin:"0 auto 16px" }}></div>
+            <p style={{ color:"var(--text3)", fontWeight:600 }}>Searching...</p>
+          </div>
+        )}
+        {!searching && submitted && results ? (
           <>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 40 }}>
               {[
@@ -234,7 +236,7 @@ export function SearchPage({ navigate, pageParams }) {
             )}
           </>
         ) : (
-          <div className="clay-card text-center" style={{ padding: 80 }}>
+          !searching && <div className="clay-card text-center" style={{ padding: 80 }}>
             <div style={{ fontSize: "5rem", marginBottom: 20 }}>🔍</div>
             <h4 style={{ fontWeight: 800, marginBottom: 12, color: "var(--text)" }}>
               {t("start_your_search")}
@@ -276,9 +278,19 @@ const ecIcon = {
 export function SafetyPage({ navigate }) {
   const { t } = useLang();
   const [selDest, setSelDest] = useState("");
+  const [alerts, setAlerts] = useState(safetyAlerts);
+  const [contacts, setContacts] = useState(emergencyContacts);
+  const [destinations, setDestinations] = useState(mockDests);
 
-  const destAlerts = safetyAlerts.filter((a) => !selDest || String(a.destination?.id) === selDest);
-  const globalAlerts = safetyAlerts.filter(() => !selDest);
+  useEffect(() => {
+    api.safetyAlerts().then(d => { const items = d?.results || d; if (Array.isArray(items) && items.length) setAlerts(items); }).catch(() => {});
+    api.emergencyContacts().then(d => { const items = d?.results || d; if (Array.isArray(items) && items.length) setContacts(items); }).catch(() => {});
+    api.destinations().then(d => { const items = d?.results || d; if (Array.isArray(items) && items.length) setDestinations(items); }).catch(() => {});
+  }, []);
+
+  const visibleAlerts = selDest
+    ? alerts.filter((a) => String(a.destination?.id) === selDest)
+    : alerts;
 
   return (
     <div>
@@ -325,14 +337,14 @@ export function SafetyPage({ navigate }) {
           </div>
         </div>
 
-        {(!selDest ? globalAlerts : destAlerts).length > 0 && (
+        {visibleAlerts.length > 0 && (
           <div style={{ marginBottom: 48 }}>
             <h4 style={{ fontWeight: 800, marginBottom: 24, color: "var(--text)" }}>
               ⚠️ {t("active_travel_alerts")}
             </h4>
 
             <div className="grid-2">
-              {(!selDest ? globalAlerts : destAlerts).map((alert) => (
+              {visibleAlerts.map((alert) => (
                 <div key={alert.id} className={`alert-strip alert-${alert.level}`}>
                   <div
                     style={{
@@ -400,7 +412,7 @@ export function SafetyPage({ navigate }) {
           </h4>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 20 }}>
-            {emergencyContacts.map((c) => (
+            {contacts.map((c) => (
               <div key={c.id} className={`emergency-card ${ecClass[c.service_type] || "ec-default"}`}>
                 <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
                   <i className={`fas ${ecIcon[c.service_type] || "fa-phone"}`} style={{ fontSize: "1.4rem" }}></i>
@@ -543,126 +555,121 @@ export function AboutPage({ navigate }) {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" style={{ background:"linear-gradient(135deg,#0f0c29,#302b63)" }}>
         <div className="inner container">
-          <h1>🏔️ {t("about_us")}</h1>
-          <p>{t("your_smart_travel_companion")}</p>
+          <h1>🏔️ About Tour Tech</h1>
+          <p>Nepal's first ethical travel marketplace — built for travelers who care.</p>
         </div>
       </div>
 
       <div className="container section">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "center", marginBottom: 64 }}>
+        {/* Mission */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:48, alignItems:"center", marginBottom:64 }}>
           <div>
-            <div className="section-badge">{t("our_mission")}</div>
-            <h2 className="section-title" style={{ marginTop: 8, marginBottom: 20 }}>
-              {t("mission_title")}
+            <div className="section-badge">Our Mission</div>
+            <h2 className="section-title" style={{ marginTop:8, marginBottom:20 }}>
+              Travel That Gives Back
             </h2>
-
-            <p style={{ color: "var(--text2)", lineHeight: 1.8, marginBottom: 16, fontWeight: 500 }}>
-              {t("about_para_1")}
+            <p style={{ color:"var(--text2)", lineHeight:1.8, marginBottom:16, fontWeight:500 }}>
+              Tour Tech was built on a simple belief: the best travel experiences are the ones that benefit the communities you visit. We connect travelers with authentic Nepal experiences while ensuring that every porter is paid fairly, every guide is certified, and every booking supports local families.
             </p>
-            <p style={{ color: "var(--text2)", lineHeight: 1.8, fontWeight: 500 }}>
-              {t("about_para_2")}
+            <p style={{ color:"var(--text2)", lineHeight:1.8, fontWeight:500 }}>
+              We are the only travel platform in Nepal with a built-in Porter Ethics System — scoring every agency on fair wages, load limits, equipment, and insurance. This isn't a marketing claim. It's a verifiable standard that we enforce.
             </p>
           </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
             {[
-              { g: "linear-gradient(135deg,#4361ee,#7c3aed)", icon: "fa-map-marked-alt", l: t("stat_500_destinations") },
-              { g: "linear-gradient(135deg,#f59e0b,#ef4444)", icon: "fa-hotel", l: t("stat_1200_hotels") },
-              { g: "linear-gradient(135deg,#06d6a0,#059669)", icon: "fa-user-tie", l: t("stat_300_guides") },
-              { g: "linear-gradient(135deg,#e84855,#991b1b)", icon: "fa-shield-alt", l: t("stat_24_7_safety") },
-            ].map((item) => (
-              <div
-                key={item.l}
-                style={{
-                  background: item.g,
-                  borderRadius: 20,
-                  padding: 24,
-                  textAlign: "center",
-                  border: "3px solid rgba(0,0,0,0.08)",
-                  boxShadow: "var(--clay-shadow)",
-                }}
-              >
-                <i className={`fas ${item.icon}`} style={{ color: "#fff", fontSize: "2rem", marginBottom: 8, display: "block" }}></i>
-                <div style={{ color: "#fff", fontWeight: 800 }}>{item.l}</div>
+              { g:"linear-gradient(135deg,#4361ee,#7c3aed)", icon:"fa-map-marked-alt", l:"500+ Destinations" },
+              { g:"linear-gradient(135deg,#f59e0b,#ef4444)", icon:"fa-hotel", l:"200+ Verified Hotels" },
+              { g:"linear-gradient(135deg,#06d6a0,#059669)", icon:"fa-user-tie", l:"100+ Certified Guides" },
+              { g:"linear-gradient(135deg,#e84855,#991b1b)", icon:"fa-shield-alt", l:"Porter Ethics Certified" },
+            ].map(item => (
+              <div key={item.l} style={{ background:item.g, borderRadius:20, padding:24, textAlign:"center", border:"3px solid rgba(0,0,0,0.08)", boxShadow:"var(--clay-shadow)" }}>
+                <i className={`fas ${item.icon}`} style={{ color:"#fff", fontSize:"2rem", marginBottom:8, display:"block" }}></i>
+                <div style={{ color:"#fff", fontWeight:800 }}>{item.l}</div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="text-center mb-32">
-          <div className="section-badge">{t("why_choose_us")}</div>
-          <h2 className="section-title" style={{ marginTop: 8 }}>
-            {t("features_title")}
-          </h2>
+        {/* USP 1 */}
+        <div className="clay-card" style={{ padding:40, marginBottom:32, background:"linear-gradient(135deg,rgba(255,209,102,0.06),rgba(255,123,84,0.06))", border:"3px solid rgba(255,209,102,0.2)" }}>
+          <div style={{ display:"flex", gap:20, alignItems:"flex-start", flexWrap:"wrap" }}>
+            <div style={{ width:60, height:60, borderRadius:18, background:"linear-gradient(135deg,#ffd166,#ff7b54)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:"1.8rem" }}>🤝</div>
+            <div style={{ flex:1 }}>
+              <h4 style={{ fontWeight:900, color:"var(--text)", marginBottom:8 }}>Micro-Experience Marketplace</h4>
+              <p style={{ color:"var(--text2)", lineHeight:1.8, fontWeight:500, marginBottom:12 }}>
+                "Book a day with a Sherpa family" is not a tour package — it's a story worth sharing. Our micro-experience marketplace connects travelers with authentic, non-commoditized experiences: cooking dal bhat at altitude, learning Thangka painting from a master, joining a yak herder on seasonal migration routes. These are the experiences that get written about in travel journalism, shared on Reddit's r/Nepal, and remembered for a lifetime.
+              </p>
+              <button className="clay-btn clay-btn-gold" onClick={() => navigate("guides")}>
+                <i className="fas fa-compass"></i> Browse Micro-Experiences
+              </button>
+            </div>
+          </div>
         </div>
 
+        {/* USP 2 */}
+        <div className="clay-card" style={{ padding:40, marginBottom:48, background:"linear-gradient(135deg,rgba(6,214,160,0.06),rgba(67,97,238,0.06))", border:"3px solid rgba(6,214,160,0.2)" }}>
+          <div style={{ display:"flex", gap:20, alignItems:"flex-start", flexWrap:"wrap" }}>
+            <div style={{ width:60, height:60, borderRadius:18, background:"linear-gradient(135deg,#06d6a0,#4361ee)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:"1.8rem" }}>⚖️</div>
+            <div style={{ flex:1 }}>
+              <h4 style={{ fontWeight:900, color:"var(--text)", marginBottom:8 }}>Porter Ethics System — Industry First</h4>
+              <p style={{ color:"var(--text2)", lineHeight:1.8, fontWeight:500, marginBottom:12 }}>
+                The responsible-travel market cares deeply about porter welfare, yet zero booking platforms have built tooling for it — until now. Every trekking agency on Tour Tech is scored on fair wages (minimum $18/day), load limits (25kg maximum), proper equipment, and mandatory insurance. Agencies with low scores are removed. This turns a moral gap into a competitive advantage — the kind of feature that gets written about, shared, and that agency partners actively want to display as a badge.
+              </p>
+              <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+                {["Fair Wages Verified","25kg Load Limit","Medical Insurance","Porter Reviews"].map(b => (
+                  <span key={b} style={{ background:"rgba(6,214,160,0.12)", color:"var(--clay-green)", border:"2px solid rgba(6,214,160,0.25)", borderRadius:99, padding:"5px 14px", fontSize:"0.8rem", fontWeight:800 }}>{b}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Team values */}
+        <div className="text-center mb-32">
+          <div className="section-badge">Why Choose Us</div>
+          <h2 className="section-title" style={{ marginTop:8 }}>Built Different</h2>
+        </div>
         <div className="grid-3">
           {[
-            { e: "🌍", tkey: "why_all_in_one", dkey: "why_all_in_one_desc" },
-            { e: "🗺️", tkey: "why_maps", dkey: "why_maps_desc" },
-            { e: "🌐", tkey: "why_multilingual", dkey: "why_multilingual_desc" },
-            { e: "🛡️", tkey: "why_safety", dkey: "why_safety_desc" },
-            { e: "⭐", tkey: "why_reviews", dkey: "why_reviews_desc" },
-            { e: "📱", tkey: "why_mobile", dkey: "why_mobile_desc" },
-          ].map((f) => (
-            <div key={f.tkey} className="clay-card" style={{ padding: 28 }}>
-              <div style={{ fontSize: "2.5rem", marginBottom: 14 }}>{f.e}</div>
-              <h5 style={{ fontWeight: 800, marginBottom: 8, color: "var(--text)" }}>{t(f.tkey)}</h5>
-              <p style={{ color: "var(--text3)", fontSize: "0.875rem", margin: 0, fontWeight: 500, lineHeight: 1.6 }}>
-                {t(f.dkey)}
-              </p>
+            { e:"🤝", t2:"Micro-Experience Marketplace", d:"Authentic, shareable experiences with local families — not commoditized tour packages." },
+            { e:"⚖️", t2:"Porter Ethics System", d:"Industry-first scoring of every agency on porter welfare. A moral gap turned into a badge." },
+            { e:"🛡️", t2:t("why_safety"), d:t("why_safety_desc") },
+            { e:"🌐", t2:t("why_multilingual"), d:t("why_multilingual_desc") },
+            { e:"🗺️", t2:t("why_maps"), d:t("why_maps_desc") },
+            { e:"📱", t2:t("why_mobile"), d:t("why_mobile_desc") },
+          ].map(f => (
+            <div key={f.t2} className="clay-card" style={{ padding:28 }}>
+              <div style={{ fontSize:"2.5rem", marginBottom:14 }}>{f.e}</div>
+              <h5 style={{ fontWeight:800, marginBottom:8, color:"var(--text)" }}>{f.t2}</h5>
+              <p style={{ color:"var(--text3)", fontSize:"0.875rem", margin:0, fontWeight:500, lineHeight:1.6 }}>{f.d}</p>
             </div>
           ))}
         </div>
 
-        <div
-          style={{
-            background: "linear-gradient(135deg,#1a0533,#1a0505)",
-            borderRadius: 28,
-            padding: 56,
-            textAlign: "center",
-            marginTop: 60,
-            border: "3px solid rgba(255,255,255,0.08)",
-            boxShadow: "var(--clay-shadow-lg)",
-          }}
-        >
-          <h3
-            style={{
-              color: "#fff",
-              fontWeight: 900,
-              marginBottom: 12,
-              fontFamily: "'Playfair Display',serif",
-              fontSize: "2rem",
-            }}
-          >
-            {t("ready_explore")}
+        <div style={{ background:"linear-gradient(135deg,#1a0533,#1a0505)", borderRadius:28, padding:56, textAlign:"center", marginTop:60, border:"3px solid rgba(255,255,255,0.08)", boxShadow:"var(--clay-shadow-lg)" }}>
+          <h3 style={{ color:"#fff", fontWeight:900, marginBottom:12, fontFamily:"'Playfair Display',serif", fontSize:"2rem" }}>
+            Ready to Travel Ethically?
           </h3>
-          <p style={{ color: "rgba(255,255,255,0.7)", marginBottom: 28, fontWeight: 600 }}>{t("ready_sub")}</p>
-
-          <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
+          <p style={{ color:"rgba(255,255,255,0.7)", marginBottom:28, fontWeight:600 }}>Join thousands of travelers who choose experiences that give back.</p>
+          <div style={{ display:"flex", gap:16, justifyContent:"center", flexWrap:"wrap" }}>
             <button className="clay-btn clay-btn-gold clay-btn-lg" onClick={() => navigate("destinations")}>
-              🗺️ {t("explore_destinations")}
+              🗺️ Explore Destinations
             </button>
-            <button
-              className="clay-btn clay-btn-outline clay-btn-lg"
-              style={{ color: "#fff", borderColor: "rgba(255,255,255,0.3)" }}
-              onClick={() => navigate("contact")}
-            >
-              ✉️ {t("contact_us")}
+            <button className="clay-btn clay-btn-outline clay-btn-lg" style={{ color:"#fff", borderColor:"rgba(255,255,255,0.3)" }} onClick={() => navigate("contact")}>
+              ✉️ Contact Us
             </button>
           </div>
         </div>
       </div>
-
       <style>{`@media(max-width:768px){.container.section>div:first-child{grid-template-columns:1fr!important;}}`}</style>
     </div>
   );
 }
 
 /* ═══ CONTACT ═══ */
-export function ContactPage() {
+export function ContactPage({ navigate }) {
   const { t } = useLang();
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -671,9 +678,7 @@ export function ContactPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    try {
-      await api.contact(form);
-    } catch {}
+    try { await api.contact(form); } catch {}
     setSent(true);
     setLoading(false);
     setForm({ name: "", email: "", subject: "", message: "" });
@@ -682,10 +687,10 @@ export function ContactPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" style={{ background:"linear-gradient(135deg,#0f0c29,#302b63)" }}>
         <div className="inner container">
           <h1>📬 {t("contact_us")}</h1>
-          <p>{t("contact_sub")}</p>
+          <p>We respond within 2 hours. WhatsApp preferred for urgent trek queries.</p>
         </div>
       </div>
 
@@ -695,34 +700,43 @@ export function ContactPage() {
             <h4 style={{ fontWeight: 800, marginBottom: 24, color: "var(--text)" }}>{t("get_in_touch")}</h4>
 
             {[
-              { icon: "fa-envelope", label: t("email"), value: "support@nepal.com", g: "linear-gradient(135deg,#4361ee,#7209b7)" },
-              { icon: "fa-phone", label: t("phone"), value: "+977-1-4256909", g: "linear-gradient(135deg,#f59e0b,#ef4444)" },
-              { icon: "fa-clock", label: t("support_hours"), value: t("support_hours_value"), g: "linear-gradient(135deg,#06d6a0,#059669)" },
-              { icon: "fa-map-marker-alt", label: t("address"), value: t("address_value"), g: "linear-gradient(135deg,#e84855,#991b1b)" },
+              { icon: "fa-whatsapp fab", label: "WhatsApp (fastest)", value: "+977-9841234567", g: "linear-gradient(135deg,#25d366,#128c7e)", href:"https://wa.me/9779841234567" },
+              { icon: "fa-envelope", label: t("email"), value: "hello@tourtech.np", g: "linear-gradient(135deg,#4361ee,#7209b7)", href:"mailto:hello@tourtech.np" },
+              { icon: "fa-phone", label: t("phone"), value: "+977-1-4256909", g: "linear-gradient(135deg,#f59e0b,#ef4444)", href:"tel:+97714256909" },
+              { icon: "fa-clock", label: t("support_hours"), value: "Daily 6am–10pm NPT", g: "linear-gradient(135deg,#06d6a0,#059669)" },
+              { icon: "fa-map-marker-alt", label: t("address"), value: "Thamel, Kathmandu, Nepal", g: "linear-gradient(135deg,#e84855,#991b1b)" },
             ].map((item) => (
-              <div key={item.label} style={{ display: "flex", gap: 16, marginBottom: 24 }}>
-                <div
-                  style={{
-                    width: 52,
-                    height: 52,
-                    background: item.g,
-                    borderRadius: 16,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    border: "3px solid rgba(0,0,0,0.08)",
-                    boxShadow: "4px 4px 0px rgba(0,0,0,0.1)",
-                  }}
-                >
-                  <i className={`fas ${item.icon}`} style={{ color: "#fff" }}></i>
+              <div key={item.label} style={{ display: "flex", gap: 16, marginBottom: 20 }}>
+                <div style={{ width:52, height:52, background:item.g, borderRadius:16, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, border:"3px solid rgba(0,0,0,0.08)", boxShadow:"4px 4px 0px rgba(0,0,0,0.1)" }}>
+                  <i className={`${item.icon.includes("fab")?"fab":"fas"} ${item.icon.replace(" fab","")}`} style={{ color:"#fff" }}></i>
                 </div>
                 <div>
-                  <strong style={{ display: "block", color: "var(--text)", fontWeight: 800 }}>{item.label}</strong>
-                  <span style={{ color: "var(--text3)", fontWeight: 600 }}>{item.value}</span>
+                  <strong style={{ display:"block", color:"var(--text)", fontWeight:800 }}>{item.label}</strong>
+                  {item.href
+                    ? <a href={item.href} target="_blank" rel="noopener noreferrer" style={{ color:"var(--clay-red)", fontWeight:700, textDecoration:"none" }}>{item.value}</a>
+                    : <span style={{ color:"var(--text3)", fontWeight:600 }}>{item.value}</span>
+                  }
                 </div>
               </div>
             ))}
+
+            {/* Social links */}
+            <div style={{ marginTop:24 }}>
+              <div style={{ fontWeight:800, color:"var(--text)", marginBottom:12, fontSize:"0.85rem" }}>Follow Us</div>
+              <div style={{ display:"flex", gap:10 }}>
+                {[
+                  { icon:"fa-facebook-f", color:"#1877f2", href:"#" },
+                  { icon:"fa-instagram", color:"#e1306c", href:"#" },
+                  { icon:"fa-reddit-alien", color:"#ff4500", href:"#" },
+                  { icon:"fa-youtube", color:"#ff0000", href:"#" },
+                ].map(s => (
+                  <a key={s.icon} href={s.href} target="_blank" rel="noopener noreferrer"
+                    style={{ width:40, height:40, borderRadius:12, background:s.color, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", textDecoration:"none", fontSize:"0.9rem", boxShadow:"3px 3px 0px rgba(0,0,0,0.15)" }}>
+                    <i className={`fab ${s.icon}`}></i>
+                  </a>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="clay-card" style={{ padding: 40 }}>
@@ -808,49 +822,40 @@ export function LoginPage({ navigate, setUser }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setError("");
-
-  try {
-    const res = await api.login(form);
-
-    if (res.access && res.refresh) {
-      saveToken(res.access, res.refresh);
-
-      const profile = await api.profile();
-
-      setUser({
-        id: profile.id,
-        username: profile.username,
-        firstName: profile.first_name || profile.username,
-        lastName: profile.last_name || "",
-        email: profile.email || "",
-        is_staff: profile.is_staff,
-        is_superuser: profile.is_superuser,
-        isAdmin: profile.is_staff || profile.is_superuser,
-      });
-
-      navigate("home");
-    } else {
-      setError(t("invalid_username_password"));
-      clearToken();
-      setUser(null);
-    }
-  } catch (err) {
-    const msg =
-      typeof err === "object" && err !== null
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const res = await api.login(form);
+      if (res.access && res.refresh) {
+        saveToken(res.access, res.refresh);
+        const profile = await api.profile();
+        setUser({
+          id: profile.id,
+          username: profile.username,
+          firstName: profile.first_name || profile.username,
+          lastName: profile.last_name || "",
+          email: profile.email || "",
+          is_staff: profile.is_staff,
+          is_superuser: profile.is_superuser,
+          isAdmin: profile.is_staff || profile.is_superuser,
+        });
+        navigate("home");
+      } else {
+        setError(t("invalid_username_password"));
+        clearToken();
+      }
+    } catch (err) {
+      const msg = typeof err === "object" && err !== null
         ? Object.values(err).flat().join(" ")
         : "";
-
-    setError(msg || t("invalid_username_password"));
-    clearToken();
-    setUser(null);
-  } finally {
-    setLoading(false);
-  }
-};
+      setError(msg || t("invalid_username_password"));
+      clearToken();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="auth-page">
@@ -863,18 +868,7 @@ const handleSubmit = async (e) => {
           <p className="auth-sub">{t("sign_in_continue")}</p>
 
           {error && (
-            <div
-              style={{
-                padding: 12,
-                background: "rgba(232,72,85,0.1)",
-                border: "3px solid rgba(232,72,85,0.25)",
-                borderRadius: 14,
-                marginBottom: 16,
-                color: "var(--clay-red)",
-                fontWeight: 700,
-                fontSize: "0.875rem",
-              }}
-            >
+            <div style={{ padding: 12, background: "rgba(232,72,85,0.1)", border: "3px solid rgba(232,72,85,0.25)", borderRadius: 14, marginBottom: 16, color: "var(--clay-red)", fontWeight: 700, fontSize: "0.875rem" }}>
               ⚠️ {error}
             </div>
           )}
@@ -894,30 +888,22 @@ const handleSubmit = async (e) => {
                     placeholder={`${t("enter")} ${l.toLowerCase()}`}
                     value={form[f]}
                     onChange={(e) => setForm({ ...form, [f]: e.target.value })}
-                    style={{ paddingLeft: 40, height: 50, marginBottom: 0 }}
+                    style={{ paddingLeft: 44, height: 54, marginBottom: 0 }}
+                    required
                   />
                 </div>
               </div>
             ))}
-
-            <button
-              type="submit"
-              className="clay-btn clay-btn-red clay-btn-full clay-btn-lg mt-8"
-              style={{ height: 52 }}
-              disabled={loading}
-            >
+            <button type="submit" className="clay-btn clay-btn-red clay-btn-full clay-btn-lg mt-8" style={{ height: 58, fontSize: "1.05rem" }} disabled={loading}>
               <i className={`fas ${loading ? "fa-spinner fa-spin" : "fa-sign-in-alt"}`}></i>{" "}
               {loading ? t("signing_in") : t("sign_in")}
             </button>
           </form>
 
           <div className="auth-divider">{t("or")}</div>
-
           <p style={{ textAlign: "center", color: "var(--text3)", fontSize: "0.9rem", fontWeight: 600 }}>
             {t("dont_have_account")}{" "}
-            <span className="auth-link" onClick={() => navigate("register")}>
-              {t("sign_up_free")}
-            </span>
+            <span className="auth-link" onClick={() => navigate("register")}>{t("sign_up_free")}</span>
           </p>
         </div>
       </div>
@@ -926,66 +912,51 @@ const handleSubmit = async (e) => {
 }
 
 /* ═══ REGISTER ═══ */
+function formatError(err) {
+  if (!err || typeof err !== "object") return String(err || "");
+  // DRF returns { field: ["msg", ...], non_field_errors: [...] }
+  return Object.entries(err).map(([field, msgs]) => {
+    const label = field === "non_field_errors" ? "" : `${field.replace(/_/g, " ")}: `;
+    const text = Array.isArray(msgs) ? msgs.join(" ") : String(msgs);
+    return label + text;
+  });
+}
+
 export function RegisterPage({ navigate, setUser }) {
   const { t } = useLang();
-  const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    username: "",
-    email: "",
-    password: "",
-    password2: "",
-  });
+  const [form, setForm] = useState({ firstName: "", lastName: "", username: "", email: "", password: "", password2: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-
-  if (form.password !== form.password2) {
-    setError(t("passwords_not_match"));
-    return;
-  }
-
-  if (form.password.length < 8) {
-    setError(t("password_min_8"));
-    return;
-  }
-
-  setLoading(true);
-  setError("");
-
-  try {
-    const res = await api.register({
-      username: form.username,
-      email: form.email,
-      password: form.password,
-      password2: form.password2,
-      first_name: form.firstName,
-      last_name: form.lastName,
-    });
-
-    if (res.access || res.user) {
-      clearToken();
-      setUser(null);
-      alert("Account created successfully. Please sign in.");
-      navigate("login");
-    } else {
-      const msg = typeof res === "object" && res !== null
-        ? Object.values(res).flat().join(" ")
-        : "";
-      setError(msg || t("registration_failed"));
+    e.preventDefault();
+    if (form.password !== form.password2) { setError("Passwords do not match."); return; }
+    if (form.password.length < 8) { setError("Password must be at least 8 characters."); return; }
+    setLoading(true);
+    setError("");
+    try {
+      const res = await api.register({
+        username: form.username,
+        email: form.email,
+        password: form.password,
+        password2: form.password2,
+        first_name: form.firstName,
+        last_name: form.lastName,
+      });
+      if (res.access || res.user) {
+        clearToken();
+        setUser(null);
+        alert("Account created successfully. Please sign in.");
+        navigate("login");
+      } else {
+        setError(formatError(res) || t("registration_failed"));
+      }
+    } catch (err) {
+      setError(formatError(err) || t("registration_failed"));
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    const msg =
-      typeof err === "object" && err !== null
-        ? Object.values(err).flat().join(" ")
-        : "";
-    setError(msg || t("registration_failed"));
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="auth-page">
@@ -999,52 +970,33 @@ export function RegisterPage({ navigate, setUser }) {
 
           <div style={{ display: "flex", gap: 14, justifyContent: "center", marginBottom: 20, flexWrap: "wrap" }}>
             {[t("free_forever"), t("save_favorites"), t("write_reviews")].map((p) => (
-              <span key={p} style={{ fontSize: "0.78rem", color: "var(--clay-green)", fontWeight: 800 }}>
-                {p}
-              </span>
+              <span key={p} style={{ fontSize: "0.78rem", color: "var(--clay-green)", fontWeight: 800 }}>{p}</span>
             ))}
           </div>
 
           {error && (
-            <div
-              style={{
-                padding: 12,
-                background: "rgba(232,72,85,0.1)",
-                border: "3px solid rgba(232,72,85,0.25)",
-                borderRadius: 14,
-                marginBottom: 16,
-                color: "var(--clay-red)",
-                fontWeight: 700,
-                fontSize: "0.875rem",
-              }}
-            >
-              ⚠️ {error}
+            <div style={{ padding: "12px 14px", background: "rgba(232,72,85,0.1)", border: "3px solid rgba(232,72,85,0.25)", borderRadius: 14, marginBottom: 16, color: "var(--clay-red)", fontWeight: 700, fontSize: "0.875rem" }}>
+              {Array.isArray(error)
+                ? <ul style={{ margin: 0, paddingLeft: 18 }}>{error.map((e, i) => <li key={i}>⚠️ {e}</li>)}</ul>
+                : <span>⚠️ {error}</span>
+              }
             </div>
           )}
 
           <form onSubmit={handleSubmit}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              {[
-                { f: "firstName", l: t("first_name") },
-                { f: "lastName", l: t("last_name") },
-              ].map(({ f, l }) => (
+              {[{ f: "firstName", l: t("first_name") }, { f: "lastName", l: t("last_name") }].map(({ f, l }) => (
                 <div key={f} className="auth-input-wrap">
                   <label>{l}</label>
                   <div style={{ position: "relative" }}>
                     <i className="fas fa-user auth-input-icon"></i>
-                    <input
-                      className="clay-input"
-                      placeholder={l}
-                      value={form[f]}
+                    <input className="clay-input" placeholder={l} value={form[f]}
                       onChange={(e) => setForm({ ...form, [f]: e.target.value })}
-                      style={{ paddingLeft: 40, height: 50, marginBottom: 0 }}
-                      required
-                    />
+                      style={{ paddingLeft: 44, height: 54, marginBottom: 0 }} />
                   </div>
                 </div>
               ))}
             </div>
-
             {[
               { f: "username", l: t("username"), type: "text", i: "fa-user" },
               { f: "email", l: t("email"), type: "email", i: "fa-envelope" },
@@ -1055,37 +1007,22 @@ export function RegisterPage({ navigate, setUser }) {
                 <label>{l}</label>
                 <div style={{ position: "relative" }}>
                   <i className={`fas ${i} auth-input-icon`}></i>
-                  <input
-                    type={type}
-                    className="clay-input"
-                    placeholder={l}
-                    value={form[f]}
+                  <input type={type} className="clay-input" placeholder={l} value={form[f]}
                     onChange={(e) => setForm({ ...form, [f]: e.target.value })}
-                    style={{ paddingLeft: 40, height: 50, marginBottom: 0 }}
-                    required
-                  />
+                    style={{ paddingLeft: 44, height: 54, marginBottom: 0 }} required />
                 </div>
               </div>
             ))}
-
-            <button
-              type="submit"
-              className="clay-btn clay-btn-red clay-btn-full clay-btn-lg mt-8"
-              style={{ height: 52 }}
-              disabled={loading}
-            >
+            <button type="submit" className="clay-btn clay-btn-red clay-btn-full clay-btn-lg mt-8" style={{ height: 58, fontSize: "1.05rem" }} disabled={loading}>
               <i className={`fas ${loading ? "fa-spinner fa-spin" : "fa-user-plus"}`}></i>{" "}
               {loading ? t("creating") : t("create_account")}
             </button>
           </form>
 
           <div className="auth-divider">{t("or")}</div>
-
           <p style={{ textAlign: "center", color: "var(--text3)", fontSize: "0.9rem", fontWeight: 600 }}>
             {t("already_have_account")}{" "}
-            <span className="auth-link" onClick={() => navigate("login")}>
-              {t("sign_in")}
-            </span>
+            <span className="auth-link" onClick={() => navigate("login")}>{t("sign_in")}</span>
           </p>
         </div>
       </div>

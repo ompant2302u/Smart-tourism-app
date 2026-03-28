@@ -10,6 +10,7 @@ const NAV_KEYS = [
   { key:"transport",    icon:"fa-bus" },
   { key:"guides",       icon:"fa-user-tie" },
   { key:"safety",       icon:"fa-shield-alt" },
+  { key:"estimator",    icon:"fa-calculator" },
 ];
 
 const SEARCH_INDEX = [
@@ -91,7 +92,7 @@ export default function Navbar({ navigate, page, user, setUser, theme, setTheme 
         {/* Brand */}
         <span className="nav-brand" onClick={() => goTo("home")}>
           <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Flag_of_Nepal.svg/40px-Flag_of_Nepal.svg.png"
-            alt="Nepal" style={{height:22,borderRadius:3,boxShadow:"2px 2px 0px rgba(0,0,0,0.1)"}} />
+            alt="Nepal" style={{height:26,borderRadius:4,boxShadow:"2px 2px 0px rgba(0,0,0,0.1)"}} />
           Tour Tech
         </span>
 
@@ -202,8 +203,8 @@ export default function Navbar({ navigate, page, user, setUser, theme, setTheme 
                   </button>
                   {(user.isAdmin || user.is_staff || user.is_superuser) && (
                     <>
-                      <button className="user-menu-item" onClick={() => { goTo("admin"); setUserDrop(false); }} style={{ color:"var(--clay-red)", fontWeight:800 }}>
-                        <i className="fas fa-chart-bar"></i> Admin Dashboard
+                      <button className="user-menu-item" onClick={() => { window.open("http://localhost:8000/admin/", "_blank"); setUserDrop(false); }} style={{ color:"var(--clay-red)", fontWeight:800 }}>
+                        <i className="fas fa-tools"></i> Admin Panel
                       </button>
                       <button className="user-menu-item" onClick={() => { goTo("activity"); setUserDrop(false); }} style={{ color:"var(--clay-purple)", fontWeight:800 }}>
                         <i className="fas fa-history"></i> Activity Tracker

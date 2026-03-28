@@ -38,6 +38,7 @@ export default function AdminDashboard({ navigate, user }) {
   const [userDetail, setUserDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refundNote, setRefundNote] = useState({});
+  const [initialTab, setInitialTab] = useState(null);
 
   useEffect(() => {
     if (!user?.isAdmin) { navigate("home"); return; }
@@ -97,14 +98,14 @@ export default function AdminDashboard({ navigate, user }) {
 
           {/* Stats */}
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))", gap:16, paddingBottom:40 }}>
-            <StatBox icon="fa-users" label="Total Users" value={stats.users} grad="linear-gradient(135deg,#4361ee,#7c3aed)" />
-            <StatBox icon="fa-calendar-check" label="Bookings" value={bookingLogs.length} grad="linear-gradient(135deg,#e84855,#991b1b)" />
-            <StatBox icon="fa-dollar-sign" label="Revenue" value={stats.total_revenue ? `$${stats.total_revenue}` : "$0"} grad="linear-gradient(135deg,#06d6a0,#059669)" />
-            <StatBox icon="fa-star" label="Reviews" value={stats.reviews} grad="linear-gradient(135deg,#f59e0b,#d97706)" />
-            <StatBox icon="fa-heart" label="Favourites" value={stats.favorites} grad="linear-gradient(135deg,#ec4899,#be185d)" />
-            <StatBox icon="fa-envelope" label="Subscribers" value={stats.newsletter_subscribers} grad="linear-gradient(135deg,#3b82f6,#1d4ed8)" />
-            <StatBox icon="fa-undo" label="Pending Refunds" value={stats.pending_refunds} grad="linear-gradient(135deg,#8b5cf6,#6d28d9)" sub="Needs review" />
-            <StatBox icon="fa-map-marked-alt" label="Destinations" value={stats.destinations} grad="linear-gradient(135deg,#14b8a6,#0f766e)" />
+            <div onClick={() => setTab("users")} style={{ cursor:"pointer" }}><StatBox icon="fa-users" label="Total Users" value={stats.users} grad="linear-gradient(135deg,#4361ee,#7c3aed)" /></div>
+            <div onClick={() => setTab("bookings")} style={{ cursor:"pointer" }}><StatBox icon="fa-calendar-check" label="Bookings" value={bookingLogs.length} grad="linear-gradient(135deg,#e84855,#991b1b)" /></div>
+            <div onClick={() => setTab("payments")} style={{ cursor:"pointer" }}><StatBox icon="fa-dollar-sign" label="Revenue" value={stats.total_revenue ? `$${stats.total_revenue}` : "$0"} grad="linear-gradient(135deg,#06d6a0,#059669)" /></div>
+            <div onClick={() => setTab("reviews")} style={{ cursor:"pointer" }}><StatBox icon="fa-star" label="Reviews" value={stats.reviews} grad="linear-gradient(135deg,#f59e0b,#d97706)" /></div>
+            <div onClick={() => setTab("favourites")} style={{ cursor:"pointer" }}><StatBox icon="fa-heart" label="Favourites" value={stats.favorites} grad="linear-gradient(135deg,#ec4899,#be185d)" /></div>
+            <div onClick={() => setTab("subscribers")} style={{ cursor:"pointer" }}><StatBox icon="fa-envelope" label="Subscribers" value={stats.newsletter_subscribers} grad="linear-gradient(135deg,#3b82f6,#1d4ed8)" /></div>
+            <div onClick={() => setTab("refunds")} style={{ cursor:"pointer" }}><StatBox icon="fa-undo" label="Pending Refunds" value={stats.pending_refunds} grad="linear-gradient(135deg,#8b5cf6,#6d28d9)" sub="Needs review" /></div>
+            <div onClick={() => setTab("activity")} style={{ cursor:"pointer" }}><StatBox icon="fa-map-marked-alt" label="Destinations" value={stats.destinations} grad="linear-gradient(135deg,#14b8a6,#0f766e)" /></div>
           </div>
         </div>
       </div>
@@ -228,7 +229,12 @@ export default function AdminDashboard({ navigate, user }) {
             {/* REVIEWS */}
             {tab === "reviews" && (
               <div>
-                <h4 style={{ fontWeight:800, color:"var(--text)", marginBottom:24 }}>Reviews ({reviews.length})</h4>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24, flexWrap:"wrap", gap:12 }}>
+                  <h4 style={{ fontWeight:800, color:"var(--text)", margin:0 }}>Reviews ({reviews.length})</h4>
+                  <a href="http://localhost:8000/admin/api/review/" target="_blank" rel="noopener noreferrer" className="clay-btn clay-btn-sm" style={{ background:"linear-gradient(135deg,#f59e0b,#d97706)", color:"#fff", border:"none", textDecoration:"none" }}>
+                    <i className="fas fa-external-link-alt"></i> Manage in Admin Panel
+                  </a>
+                </div>
                 <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
                   {reviews.length === 0 ? <div className="clay-card" style={{ padding:40, textAlign:"center", color:"var(--text3)" }}>No reviews logged yet.</div> :
                     reviews.map((r,i) => (
@@ -253,7 +259,12 @@ export default function AdminDashboard({ navigate, user }) {
             {/* FAVOURITES */}
             {tab === "favourites" && (
               <div>
-                <h4 style={{ fontWeight:800, color:"var(--text)", marginBottom:24 }}>Favourites ({favs.length})</h4>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24, flexWrap:"wrap", gap:12 }}>
+                  <h4 style={{ fontWeight:800, color:"var(--text)", margin:0 }}>Favourites ({favs.length})</h4>
+                  <a href="http://localhost:8000/admin/api/favorite/" target="_blank" rel="noopener noreferrer" className="clay-btn clay-btn-sm" style={{ background:"linear-gradient(135deg,#ec4899,#be185d)", color:"#fff", border:"none", textDecoration:"none" }}>
+                    <i className="fas fa-external-link-alt"></i> Manage in Admin Panel
+                  </a>
+                </div>
                 <div className="clay-card" style={{ padding:0, overflow:"hidden" }}>
                   <table style={{ width:"100%", borderCollapse:"collapse" }}>
                     <thead><tr style={{ background:"linear-gradient(135deg,#1a0533,#0d1117)" }}>
@@ -276,7 +287,12 @@ export default function AdminDashboard({ navigate, user }) {
             {/* SUBSCRIBERS */}
             {tab === "subscribers" && (
               <div>
-                <h4 style={{ fontWeight:800, color:"var(--text)", marginBottom:24 }}>Newsletter Subscribers ({subscribers.length})</h4>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24, flexWrap:"wrap", gap:12 }}>
+                  <h4 style={{ fontWeight:800, color:"var(--text)", margin:0 }}>Newsletter Subscribers ({subscribers.length})</h4>
+                  <a href="http://localhost:8000/admin/api/newslettersubscriber/" target="_blank" rel="noopener noreferrer" className="clay-btn clay-btn-sm" style={{ background:"linear-gradient(135deg,#3b82f6,#1d4ed8)", color:"#fff", border:"none", textDecoration:"none" }}>
+                    <i className="fas fa-external-link-alt"></i> Manage in Admin Panel
+                  </a>
+                </div>
                 <div className="clay-card" style={{ padding:0, overflow:"hidden" }}>
                   <table style={{ width:"100%", borderCollapse:"collapse" }}>
                     <thead><tr style={{ background:"linear-gradient(135deg,#1a0533,#0d1117)" }}>
@@ -348,9 +364,9 @@ export default function AdminDashboard({ navigate, user }) {
                           <td style={{ padding:"12px 16px", fontSize:"0.82rem", color:"var(--text3)" }}>{u.user?.email}</td>
                           <td style={{ padding:"12px 16px", fontWeight:700, color:"var(--clay-blue)" }}>{u.booking_count}</td>
                           <td style={{ padding:"12px 16px", fontWeight:800, color:"var(--clay-green)" }}>${u.payment_total?.toFixed(2)}</td>
-                          <td style={{ padding:"12px 16px", fontWeight:700, color:"var(--clay-gold)" }}>{u.review_count}</td>
-                          <td style={{ padding:"12px 16px", fontWeight:700, color:"var(--clay-red)" }}>{u.favorite_count}</td>
-                          <td style={{ padding:"12px 16px", fontWeight:700, color:"var(--clay-purple)" }}>{u.visit_count}</td>
+                          <td style={{ padding:"12px 16px", fontWeight:700, color:"var(--clay-gold)", cursor:"pointer", textDecoration:"underline dotted" }} onClick={() => { setTab("activity"); loadUserDetail(u.user?.id); }}>{u.review_count}</td>
+                          <td style={{ padding:"12px 16px", fontWeight:700, color:"var(--clay-red)", cursor:"pointer", textDecoration:"underline dotted" }} onClick={() => { setTab("activity"); loadUserDetail(u.user?.id); }}>{u.favorite_count}</td>
+                          <td style={{ padding:"12px 16px", fontWeight:700, color:"var(--clay-purple)", cursor:"pointer", textDecoration:"underline dotted" }} onClick={() => { setTab("activity"); loadUserDetail(u.user?.id); }}>{u.visit_count}</td>
                           <td style={{ padding:"12px 16px", fontSize:"0.75rem", color:"var(--text4)" }}>{u.last_active ? new Date(u.last_active).toLocaleDateString() : "—"}</td>
                           <td style={{ padding:"12px 16px" }}>
                             <button className="clay-btn clay-btn-outline clay-btn-sm" onClick={() => { setTab("activity"); loadUserDetail(u.user?.id); }}>
