@@ -1,10 +1,11 @@
 from pathlib import Path
 from datetime import timedelta
 import os
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load .env file if present
+# Load .env file if present (local dev only)
 _env_file = BASE_DIR / ".env"
 if _env_file.exists():
     for _line in _env_file.read_text().splitlines():
@@ -13,10 +14,16 @@ if _env_file.exists():
             _k, _v = _line.split("=", 1)
             os.environ.setdefault(_k.strip(), _v.strip())
 
-SECRET_KEY = "tourtech-dev-secret-key-change-in-production"
+SECRET_KEY = os.environ.get("SECRET_KEY", "tourtech-dev-secret-key-change-in-production")
 UNSPLASH_ACCESS_KEY = os.environ.get("UNSPLASH_ACCESS_KEY", "")
-DEBUG = True
-ALLOWED_HOSTS = ["*"]
+ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
+AGENT_ID = os.environ.get("AGENT_ID", "")
+BRANCH_ID = os.environ.get("BRANCH_ID", None)
+DEBUG = os.environ.get("DEBUG", "True") == "True"
+
+# Accept localhost for dev + any .onrender.com subdomain for production
+_extra_hosts = os.environ.get("ALLOWED_HOSTS", "")
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"] + [h for h in _extra_hosts.split(",") if h]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -33,6 +40,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -56,12 +64,16 @@ TEMPLATES = [{
 
 WSGI_APPLICATION = "tourtech_backend.wsgi.application"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+_db_url = os.environ.get("DATABASE_URL")
+if _db_url:
+    DATABASES = {"default": dj_database_url.parse(_db_url, conn_max_age=600)}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
-}
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -74,6 +86,7 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ── DRF ──────────────────────────────────────────────────────────────────────
@@ -96,8 +109,9 @@ SIMPLE_JWT = {
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:3000",
+    o for o in os.environ.get(
+        "CORS_ALLOWED_ORIGINS",
+        "http://localhost:5173,http://localhost:3000"
+    ).split(",") if o
 ]
 CORS_ALLOW_CREDENTIALS = True

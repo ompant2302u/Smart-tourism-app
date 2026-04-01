@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from .models import (
     Category, Destination, Hotel, Guide, Review,
     SafetyAlert, EmergencyContact, Favorite, TripPlan,
-    NewsletterSubscriber, BookingLog, Payment, Refund, VisitHistory,
+    NewsletterSubscriber, BookingLog, Payment, Refund, VisitHistory, Notification,
 )
 
 
@@ -124,12 +124,12 @@ class FavoriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Favorite
         fields = "__all__"
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "user", "created_at"]
 
     def validate(self, attrs):
         ct = attrs.get("content_type")
         if ct == "transport":
-            return attrs  # transport has no FK, just item_name
+            return attrs
         filled = [bool(attrs.get("destination")), bool(attrs.get("hotel")), bool(attrs.get("guide"))]
         if sum(filled) != 1:
             raise serializers.ValidationError("Provide exactly one target.")
@@ -151,8 +151,9 @@ class TripPlanSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
     password2 = serializers.CharField(write_only=True)
-    first_name = serializers.CharField(required=False, allow_blank=True)
-    last_name = serializers.CharField(required=False, allow_blank=True)
+    first_name = serializers.CharField(required=False, allow_blank=True, default="")
+    last_name  = serializers.CharField(required=False, allow_blank=True, default="")
+    email      = serializers.EmailField(required=False, allow_blank=True, default="")
 
     class Meta:
         model = User
@@ -162,15 +163,18 @@ class RegisterSerializer(serializers.ModelSerializer):
         if data["password"] != data["password2"]:
             raise serializers.ValidationError({"password2": "Passwords do not match."})
         if User.objects.filter(username=data["username"]).exists():
-            raise serializers.ValidationError({"username": "Username already exists."})
-        email = data.get("email")
+            raise serializers.ValidationError({"username": "Username already taken."})
+        email = data.get("email", "").strip()
         if email and User.objects.filter(email=email).exists():
-            raise serializers.ValidationError({"email": "Email already exists."})
+            raise serializers.ValidationError({"email": "Email already in use."})
         return data
 
     def create(self, validated_data):
         validated_data.pop("password2")
         password = validated_data.pop("password")
+        # Remove blank email so it doesn't trigger uniqueness issues
+        if not validated_data.get("email"):
+            validated_data.pop("email", None)
         return User.objects.create_user(password=password, **validated_data)
 
 
@@ -227,3 +231,10 @@ class VisitHistorySerializer(serializers.ModelSerializer):
         model = VisitHistory
         fields = "__all__"
         read_only_fields = ["id", "visited_at"]
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ["id", "is_admin", "type", "title", "message", "booking_id", "is_read", "created_at"]
+        read_only_fields = ["id", "created_at"]

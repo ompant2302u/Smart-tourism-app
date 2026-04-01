@@ -288,7 +288,7 @@ export default function TransportPage({ navigate, user }) {
       )}
       {bookingDone && (
         <div style={{ position:"fixed",bottom:32,left:"50%",transform:"translateX(-50%)",background:"linear-gradient(135deg,var(--clay-green),#059669)",color:"#fff",fontWeight:800,padding:"14px 28px",borderRadius:99,boxShadow:"0 8px 30px rgba(6,214,160,0.4)",zIndex:10000,border:"2px solid rgba(255,255,255,0.2)" }}>
-          ✅ Transport booked! ${bookingDone.amount} paid via {bookingDone.method?.toUpperCase()}.
+          ⏳ Transport booking submitted! ${bookingDone.amount} paid via {bookingDone.method?.toUpperCase()}. Awaiting admin approval.
         </div>
       )}
 
@@ -300,7 +300,7 @@ export default function TransportPage({ navigate, user }) {
           alt={activeType}
           style={{ width:"100%", height:"100%", objectFit:"cover", animation:"tp-zoom 8s ease-out forwards" }}
         />
-        <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom, rgba(10,10,30,0.35) 0%, rgba(10,10,30,0.75) 60%, rgba(10,10,30,0.97) 100%)" }} />
+        <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom, rgba(10,10,30,0.35) 0%, rgba(10,10,30,0.75) 60%, rgba(10,10,30,0.97) 100%)", pointerEvents:"none" }} />
         <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:"0 24px" }}>
           <ol className="breadcrumb" style={{ justifyContent:"center", marginBottom:16 }}>
             <li className="breadcrumb-item"><a onClick={() => navigate("home")} style={{ color:"rgba(255,255,255,0.6)", cursor:"pointer" }}>{t("home")}</a></li>
@@ -359,7 +359,7 @@ export default function TransportPage({ navigate, user }) {
                     <img src={opt.image} alt={t(opt.name_key)} style={{ width:"100%", height:"100%", objectFit:"cover", transition:"transform 0.5s" }}
                       onMouseEnter={e => e.target.style.transform="scale(1.08)"}
                       onMouseLeave={e => e.target.style.transform="scale(1)"} />
-                    <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)" }} />
+                    <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)", pointerEvents:"none" }} />
                     <span style={{ position:"absolute", bottom:12, left:12, background: active.gradient, color:"#fff", borderRadius:99, padding:"4px 12px", fontSize:"0.72rem", fontWeight:800 }}>
                       {t(opt.note_key)}
                     </span>
@@ -390,7 +390,7 @@ export default function TransportPage({ navigate, user }) {
                           api.toggleFavorite({ content_type:"transport", item_name: t(opt.name_key) });
                           navigate("profile", { tab:"favourites" });
                         }}>
-                        ❤️ Save to Favourites
+                        ❤️ {t("save_favorite")}
                       </button>
                     )}
                   </div>

@@ -43,6 +43,15 @@ urlpatterns = [
     path("admin/refunds/", views.admin_refunds),
     path("admin/refunds/<int:pk>/", views.admin_refunds),
     path("admin/user-activity/", views.user_activity),
+    path("admin/bookings/<int:pk>/confirm/", views.admin_confirm_booking),
+    path("admin/reviews/", views.admin_reviews),
+    path("admin/reviews/<int:pk>/", views.admin_reviews),
+    path("admin/favourites/", views.admin_favourites),
+    path("admin/favourites/<int:pk>/", views.admin_favourites),
+
+    # Notifications
+    path("notifications/", views.notifications),
+    path("notifications/<int:pk>/read/", views.mark_notification_read),
 
     # Search
     path("search/", views.search),
@@ -58,4 +67,10 @@ urlpatterns = [
 
     # Unsplash proxy
     path("unsplash/", views.unsplash_image),
+
+    # ElevenLabs AI chatbot
+    path("elevenlabs/signed-url/", views.get_signed_url),
+
+    # Nepal AI text chat
+    path("ai-chat/", views.ai_chat),
 ]

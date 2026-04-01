@@ -5,7 +5,7 @@ import { api } from "../api";
 import { useLang } from "../context/LangContext";
 import NepalImage from "../components/common/NepalImage";
 
-export function DestinationsPage({ navigate }) {
+export function DestinationsPage({ navigate, user }) {
   const { t } = useLang();
   const [selCat, setSelCat] = useState("");
   const [selCountry, setSelCountry] = useState("");
@@ -99,7 +99,7 @@ export function DestinationsPage({ navigate }) {
             {filtered.length > 0 ? (
               <div className="grid-3">
                 {filtered.map((dest, i) => (
-                  <DestinationCard key={dest.id} dest={dest} navigate={navigate} delay={i * 0.04} />
+                  <DestinationCard key={dest.id} dest={dest} navigate={navigate} delay={i * 0.04} user={user} />
                 ))}
               </div>
             ) : (
@@ -133,7 +133,7 @@ export function DestinationDetailPage({ navigate, pageParams, user }) {
     if (dest.slug) {
       api.destination(dest.slug).then(d => { if (d?.id) setDest(d); }).catch(() => {});
     }
-    fetch(`http://127.0.0.1:8000/api/destinations/${dest.slug || dest.id}/reviews/`)
+    fetch(`/api/destinations/${dest.slug || dest.id}/reviews/`)
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setReviews(d); }).catch(() => setReviews([]));
     if (user) {
       api.addVisit({ content_type: "destination", destination_id: dest.id, item_name: dest.name }).catch(() => {});
@@ -154,12 +154,9 @@ export function DestinationDetailPage({ navigate, pageParams, user }) {
   const handleSave = async () => {
     if (!user) { navigate("login"); return; }
     try {
-      await api.toggleFavorite({ content_type: "destination", id: dest.id });
-      setSaved(s => !s);
-      if (!saved) {
-        navigate("profile", { tab: "favourites" });
-        setTimeout(() => window.dispatchEvent(new CustomEvent("nw-data-changed")), 0);
-      }
+      const res = await api.toggleFavorite({ content_type: "destination", id: dest.id, item_name: dest.name });
+      setSaved(res?.removed ? false : true);
+      window.dispatchEvent(new CustomEvent("nw-data-changed"));
     } catch {}
   };
 

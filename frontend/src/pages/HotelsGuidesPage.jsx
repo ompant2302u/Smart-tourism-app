@@ -7,7 +7,7 @@ import { useLang } from "../context/LangContext";
 import { BookingModal } from "../components/BookingModal";
 
 /* ─── HOTELS LIST ─── */
-export function HotelsPage({ navigate }) {
+export function HotelsPage({ navigate, user }) {
   const { t } = useLang();
   const [selDest, setSelDest] = useState("");
   const [selStars, setSelStars] = useState("");
@@ -115,7 +115,7 @@ export function HotelsPage({ navigate }) {
             {filtered.length > 0 ? (
               <div className="grid-2">
                 {filtered.map((h, i) => (
-                  <HotelCard key={h.id} hotel={h} navigate={navigate} delay={i * 0.05} />
+                  <HotelCard key={h.id} hotel={h} navigate={navigate} delay={i * 0.05} user={user} />
                 ))}
               </div>
             ) : (
@@ -148,7 +148,7 @@ export function HotelDetailPage({ navigate, pageParams, user }) {
     if (hotel.slug) {
       api.hotel(hotel.slug).then(d => { if (d?.id) setHotel(d); }).catch(() => {});
     }
-    fetch(`http://127.0.0.1:8000/api/hotels/${hotel.slug || hotel.id}/reviews/`)
+    fetch(`/api/hotels/${hotel.slug || hotel.id}/reviews/`)
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setReviews(d); }).catch(() => setReviews([]));
     if (user) {
       api.addVisit({ content_type: "hotel", hotel_id: hotel.id, item_name: hotel.name }).catch(() => {});
@@ -158,12 +158,11 @@ export function HotelDetailPage({ navigate, pageParams, user }) {
 
   const handleSave = async () => {
     if (!user) { navigate("login"); return; }
-    try { await api.toggleFavorite({ content_type: "hotel", id: hotel.id }); } catch {}
-    setSaved(s => !s);
-    if (!saved) {
-      navigate("profile", { tab: "favourites" });
-      setTimeout(() => window.dispatchEvent(new CustomEvent("nw-data-changed")), 0);
-    }
+    try {
+      const res = await api.toggleFavorite({ content_type: "hotel", id: hotel.id, item_name: hotel.name });
+      setSaved(res?.removed ? false : true);
+      window.dispatchEvent(new CustomEvent("nw-data-changed"));
+    } catch {}
   };
 
   const handleReviewSubmit = async (r) => {
@@ -328,7 +327,7 @@ export function HotelDetailPage({ navigate, pageParams, user }) {
 
               {bookingDone && (
                 <div style={{ padding:"10px 14px",background:"rgba(6,214,160,0.12)",border:"3px solid rgba(6,214,160,0.25)",borderRadius:12,marginBottom:12,color:"var(--clay-green)",fontWeight:800,fontSize:"0.85rem" }}>
-                  ✅ Booking confirmed! ${bookingDone.amount} paid via {bookingDone.method?.toUpperCase()}.
+                  ⏳ Booking submitted! ${bookingDone.amount} paid via {bookingDone.method?.toUpperCase()}. Awaiting admin approval.
                 </div>
               )}
 
@@ -418,7 +417,7 @@ export function HotelDetailPage({ navigate, pageParams, user }) {
 }
 
 /* ─── GUIDES LIST ─── */
-export function GuidesPage({ navigate }) {
+export function GuidesPage({ navigate, user }) {
   const { t } = useLang();
   const [selDest, setSelDest] = useState("");
   const [selLang, setSelLang] = useState("");
@@ -500,7 +499,7 @@ export function GuidesPage({ navigate }) {
             {filtered.length > 0 ? (
               <div className="grid-4">
                 {filtered.map((g, i) => (
-                  <GuideCard key={g.id} guide={g} navigate={navigate} delay={i * 0.06} />
+                  <GuideCard key={g.id} guide={g} navigate={navigate} delay={i * 0.06} user={user} />
                 ))}
               </div>
             ) : (
@@ -541,7 +540,7 @@ export function GuideDetailPage({ navigate, pageParams, user }) {
     if (guide.slug) {
       api.guide(guide.slug).then(d => { if (d?.id) setGuide(d); }).catch(() => {});
     }
-    fetch(`http://127.0.0.1:8000/api/guides/${guide.slug || guide.id}/reviews/`)
+    fetch(`/api/guides/${guide.slug || guide.id}/reviews/`)
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setReviews(d); }).catch(() => setReviews([]));
     if (user) {
       api.addVisit({ content_type: "guide", guide_id: guide.id, item_name: guide.name }).catch(() => {});
@@ -551,12 +550,11 @@ export function GuideDetailPage({ navigate, pageParams, user }) {
 
   const handleGuideSave = async () => {
     if (!user) { navigate("login"); return; }
-    try { await api.toggleFavorite({ content_type: "guide", id: guide.id }); } catch {}
-    setGuideSaved(s => !s);
-    if (!guideSaved) {
-      navigate("profile", { tab: "favourites" });
-      setTimeout(() => window.dispatchEvent(new CustomEvent("nw-data-changed")), 0);
-    }
+    try {
+      const res = await api.toggleFavorite({ content_type: "guide", id: guide.id, item_name: guide.name });
+      setGuideSaved(res?.removed ? false : true);
+      window.dispatchEvent(new CustomEvent("nw-data-changed"));
+    } catch {}
   };
 
   const handleReviewSubmit = async (r) => {
@@ -763,7 +761,7 @@ export function GuideDetailPage({ navigate, pageParams, user }) {
 
               {bookingDone && (
                 <div style={{ padding:"10px 14px",background:"rgba(6,214,160,0.12)",border:"3px solid rgba(6,214,160,0.25)",borderRadius:12,marginBottom:12,color:"var(--clay-green)",fontWeight:800,fontSize:"0.85rem" }}>
-                  ✅ Guide booked! ${bookingDone.amount} paid via {bookingDone.method?.toUpperCase()}.
+                  ⏳ Guide booking submitted! ${bookingDone.amount} paid via {bookingDone.method?.toUpperCase()}. Awaiting admin approval.
                 </div>
               )}
 

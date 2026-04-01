@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
 import { LangProvider } from "./context/LangContext";
+import { ConversationProvider } from "@elevenlabs/react";
+import TourismVoiceAssistant from "./components/TourismVoiceAssistant";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import PageLoader from "./components/PageLoader";
 import { api, clearToken } from "./api";
+import AIItineraryPage from "./pages/AIItineraryPage";
+import InteractiveMapPage from "./pages/InteractiveMapPage";
 
 import HomePage from "./pages/HomePage";
 import DestinationsPage from "./pages/DestinationsPage";
@@ -26,7 +30,7 @@ import TransportPage from "./pages/TransportPage";
 import TripCostEstimator from "./pages/TripCostEstimator";
 
 const NO_FOOTER = ["login", "register"];
-const NO_NAV_PAD = ["home", "login", "register"];
+const NO_NAV_PAD = ["home", "login", "register", "ai-itinerary", "interactive-map"];
 
 function AppInner() {
   const [theme, setTheme] = useState(() => localStorage.getItem("nw-theme") || "light");
@@ -117,6 +121,10 @@ function AppInner() {
         return <ActivityTracker {...props} />;
       case "estimator":
         return <TripCostEstimator {...props} />;
+      case "ai-itinerary":
+        return <AIItineraryPage {...props} />;
+      case "interactive-map":
+        return <InteractiveMapPage {...props} />;
       default:
         return <HomePage {...props} />;
     }
@@ -137,6 +145,7 @@ function AppInner() {
         {renderPage()}
       </main>
       {!NO_FOOTER.includes(page) && <Footer navigate={navigate} />}
+      <TourismVoiceAssistant navigate={navigate} />
     </>
   );
 }
@@ -144,7 +153,9 @@ function AppInner() {
 export default function App() {
   return (
     <LangProvider>
-      <AppInner />
+      <ConversationProvider>
+        <AppInner />
+      </ConversationProvider>
     </LangProvider>
   );
 }

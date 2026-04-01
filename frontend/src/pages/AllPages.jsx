@@ -815,218 +815,223 @@ export function ContactPage({ navigate }) {
   );
 }
 
+/* ═══ SHARED AUTH STYLES ═══ */
+const cardStyle = { background:"#fff", borderRadius:"0 0 20px 20px", padding:"36px 40px", boxShadow:"0 24px 64px rgba(0,0,0,0.4)", width:"100%" };
+const labelStyle = { display:"block", fontSize:"0.72rem", fontWeight:700, color:"#4a6fa5", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:6 };
+const inputStyle = { paddingLeft:44, height:52, marginBottom:0, color:"#0f172a", background:"#fff", border:"1.5px solid #e2e8f0", borderRadius:10, width:"100%", fontFamily:"Inter,sans-serif", fontSize:"0.93rem", outline:"none", boxSizing:"border-box" };
+const iconStyle = { position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:"#94a3b8", fontSize:"0.9rem", pointerEvents:"none" };
+
+function AuthField({ label, type, icon, value, onChange, placeholder, autoFocus }) {
+  return (
+    <div style={{ marginBottom:16 }}>
+      <label style={labelStyle}>{label}</label>
+      <div style={{ position:"relative" }}>
+        <i className={`fas ${icon}`} style={iconStyle} />
+        <input type={type} value={value} onChange={onChange} placeholder={placeholder}
+          autoFocus={autoFocus} required autoComplete={type === "password" ? "current-password" : "username"}
+          style={inputStyle}
+          onFocus={e => e.target.style.borderColor="#2563b0"}
+          onBlur={e => e.target.style.borderColor="#e2e8f0"}
+        />
+      </div>
+    </div>
+  );
+}
+
+function AuthWrap({ children, maxWidth = 420 }) {
+  return (
+    <div className="auth-page">
+      <div className="auth-bg" />
+      <div style={{ position:"relative", zIndex:2, width:"100%", maxWidth, margin:"0 auto" }}>
+        <div className="nepal-strip" />
+        <div style={cardStyle}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
 /* ═══ LOGIN ═══ */
 export function LoginPage({ navigate, setUser }) {
   const { t } = useLang();
-  const [form, setForm] = useState({ username: "", password: "" });
-  const [error, setError] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError]   = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
+    setLoading(true); setError("");
     try {
-      const res = await api.login(form);
+      const res = await api.login({ username: username.trim(), password });
       if (res.access && res.refresh) {
         saveToken(res.access, res.refresh);
         const profile = await api.profile();
         setUser({
-          id: profile.id,
-          username: profile.username,
+          id: profile.id, username: profile.username,
           firstName: profile.first_name || profile.username,
-          lastName: profile.last_name || "",
-          email: profile.email || "",
-          is_staff: profile.is_staff,
-          is_superuser: profile.is_superuser,
+          lastName: profile.last_name || "", email: profile.email || "",
+          is_staff: profile.is_staff, is_superuser: profile.is_superuser,
           isAdmin: profile.is_staff || profile.is_superuser,
         });
         navigate("home");
       } else {
-        setError(t("invalid_username_password"));
+        setError("Invalid username or password.");
         clearToken();
       }
     } catch (err) {
-      const msg = typeof err === "object" && err !== null
-        ? Object.values(err).flat().join(" ")
-        : "";
-      setError(msg || t("invalid_username_password"));
+      if (err instanceof TypeError) {
+        setError("Cannot connect to server. Make sure the backend is running on port 8000.");
+      } else {
+        const msg = typeof err === "object" && err !== null
+          ? (err.detail || Object.values(err).flat().join(" "))
+          : String(err || "");
+        setError(msg || "Invalid username or password.");
+      }
       clearToken();
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-bg"></div>
-      <div style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 460, margin: "0 auto" }}>
-        <div className="nepal-strip"></div>
-        <div className="auth-card">
-          <div className="auth-logo">🏔️</div>
-          <h2 className="auth-title">{t("welcome_back")}</h2>
-          <p className="auth-sub">{t("sign_in_continue")}</p>
-
-          {error && (
-            <div style={{ padding: 12, background: "rgba(232,72,85,0.1)", border: "3px solid rgba(232,72,85,0.25)", borderRadius: 14, marginBottom: 16, color: "var(--clay-red)", fontWeight: 700, fontSize: "0.875rem" }}>
-              ⚠️ {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit}>
-            {[
-              { f: "username", l: t("username"), type: "text", i: "fa-user" },
-              { f: "password", l: t("password"), type: "password", i: "fa-lock" },
-            ].map(({ f, l, type, i }) => (
-              <div key={f} className="auth-input-wrap">
-                <label>{l}</label>
-                <div style={{ position: "relative" }}>
-                  <i className={`fas ${i} auth-input-icon`}></i>
-                  <input
-                    type={type}
-                    className="clay-input"
-                    placeholder={`${t("enter")} ${l.toLowerCase()}`}
-                    value={form[f]}
-                    onChange={(e) => setForm({ ...form, [f]: e.target.value })}
-                    style={{ paddingLeft: 44, height: 54, marginBottom: 0 }}
-                    required
-                  />
-                </div>
-              </div>
-            ))}
-            <button type="submit" className="clay-btn clay-btn-red clay-btn-full clay-btn-lg mt-8" style={{ height: 58, fontSize: "1.05rem" }} disabled={loading}>
-              <i className={`fas ${loading ? "fa-spinner fa-spin" : "fa-sign-in-alt"}`}></i>{" "}
-              {loading ? t("signing_in") : t("sign_in")}
-            </button>
-          </form>
-
-          <div className="auth-divider">{t("or")}</div>
-          <p style={{ textAlign: "center", color: "var(--text3)", fontSize: "0.9rem", fontWeight: 600 }}>
-            {t("dont_have_account")}{" "}
-            <span className="auth-link" onClick={() => navigate("register")}>{t("sign_up_free")}</span>
-          </p>
-        </div>
+    <AuthWrap>
+      <div style={{ textAlign:"center", marginBottom:24 }}>
+        <div style={{ fontSize:"2.8rem", marginBottom:8 }}>🏔️</div>
+        <h2 style={{ fontFamily:"'Poppins',sans-serif", fontWeight:800, fontSize:"1.55rem", color:"#0f172a", margin:"0 0 6px" }}>Welcome back</h2>
+        <p style={{ color:"#4a6fa5", fontSize:"0.88rem", margin:0 }}>Sign in to continue your Nepal adventure</p>
       </div>
-    </div>
+
+      {error && <div style={{ padding:"10px 14px", background:"#fef2f2", border:"1.5px solid #fca5a5", borderRadius:10, marginBottom:16, color:"#c1121f", fontWeight:600, fontSize:"0.85rem" }}>⚠️ {error}</div>}
+
+      <form onSubmit={handleSubmit}>
+        <AuthField label="Username" type="text" icon="fa-user" value={username}
+          onChange={e => setUsername(e.target.value)} placeholder="Enter your username" autoFocus />
+        <AuthField label="Password" type="password" icon="fa-lock" value={password}
+          onChange={e => setPassword(e.target.value)} placeholder="Enter your password" />
+
+        <button type="submit" disabled={loading} style={{
+          width:"100%", height:52, marginTop:8, border:"none", borderRadius:12, cursor:"pointer",
+          background:"linear-gradient(135deg,#c1121f,#e63946)", color:"#fff",
+          fontFamily:"'Poppins',sans-serif", fontWeight:700, fontSize:"1rem",
+          display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+          opacity: loading ? 0.7 : 1, transition:"opacity 0.2s",
+        }}>
+          <i className={`fas ${loading ? "fa-spinner fa-spin" : "fa-sign-in-alt"}`} />
+          {loading ? "Signing in…" : "Sign In"}
+        </button>
+      </form>
+
+      <p style={{ textAlign:"center", marginTop:20, color:"#94a3b8", fontSize:"0.83rem" }}>
+        Don't have an account?{" "}
+        <span onClick={() => navigate("register")} style={{ color:"#2563b0", fontWeight:700, cursor:"pointer" }}>Sign up free</span>
+      </p>
+    </AuthWrap>
   );
 }
 
 /* ═══ REGISTER ═══ */
 function formatError(err) {
-  if (!err || typeof err !== "object") return String(err || "");
-  // DRF returns { field: ["msg", ...], non_field_errors: [...] }
-  return Object.entries(err).map(([field, msgs]) => {
-    const label = field === "non_field_errors" ? "" : `${field.replace(/_/g, " ")}: `;
-    const text = Array.isArray(msgs) ? msgs.join(" ") : String(msgs);
-    return label + text;
-  });
+  if (!err) return "Something went wrong. Please try again.";
+  // Plain string
+  if (typeof err === "string") return err;
+  // DRF detail field
+  if (err.detail) return String(err.detail);
+  // DRF field errors: { username: ["msg"], password: ["msg"], non_field_errors: ["msg"] }
+  if (typeof err === "object") {
+    const parts = [];
+    for (const [field, msgs] of Object.entries(err)) {
+      const text = Array.isArray(msgs) ? msgs.join(" ") : String(msgs);
+      if (field === "non_field_errors") parts.push(text);
+      else parts.push(`${field.replace(/_/g, " ")}: ${text}`);
+    }
+    if (parts.length) return parts.join(" | ");
+  }
+  return "Something went wrong. Please try again.";
 }
 
-export function RegisterPage({ navigate, setUser }) {
+export function RegisterPage({ navigate }) {
   const { t } = useLang();
-  const [form, setForm] = useState({ firstName: "", lastName: "", username: "", email: "", password: "", password2: "" });
-  const [error, setError] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [password2, setPassword2] = useState("");
+  const [error, setError]   = useState("");
   const [loading, setLoading] = useState(false);
+  const [done, setDone]     = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (form.password !== form.password2) { setError("Passwords do not match."); return; }
-    if (form.password.length < 8) { setError("Password must be at least 8 characters."); return; }
-    setLoading(true);
-    setError("");
+    const u = username.trim();
+    if (!u) { setError("Username is required."); return; }
+    if (u.length < 3) { setError("Username must be at least 3 characters."); return; }
+    if (!/^[a-zA-Z0-9_]+$/.test(u)) { setError("Username can only contain letters, numbers and underscores."); return; }
+    if (password !== password2) { setError("Passwords do not match."); return; }
+    if (password.length < 8)    { setError("Password must be at least 8 characters."); return; }
+    setLoading(true); setError("");
     try {
       const res = await api.register({
-        username: form.username,
-        email: form.email,
-        password: form.password,
-        password2: form.password2,
-        first_name: form.firstName,
-        last_name: form.lastName,
+        username: u,
+        password, password2,
+        first_name: "", last_name: "",
       });
       if (res.access || res.user) {
-        clearToken();
-        setUser(null);
-        alert("Account created successfully. Please sign in.");
-        navigate("login");
+        setDone(true);
+        setTimeout(() => navigate("login"), 1500);
       } else {
-        setError(formatError(res) || t("registration_failed"));
+        setError(formatError(res));
       }
     } catch (err) {
-      setError(formatError(err) || t("registration_failed"));
-    } finally {
-      setLoading(false);
-    }
+      if (err instanceof TypeError || (typeof err === "string" && err.includes("fetch"))) {
+        setError("Cannot connect to server. Make sure the backend is running on port 8000.");
+      } else {
+        setError(formatError(err));
+      }
+    } finally { setLoading(false); }
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-bg"></div>
-      <div style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 520, margin: "0 auto" }}>
-        <div className="nepal-strip"></div>
-        <div className="auth-card">
-          <div className="auth-logo">🏔️</div>
-          <h2 className="auth-title">{t("join_tourtech")}</h2>
-          <p className="auth-sub">{t("create_free_account")}</p>
-
-          <div style={{ display: "flex", gap: 14, justifyContent: "center", marginBottom: 20, flexWrap: "wrap" }}>
-            {[t("free_forever"), t("save_favorites"), t("write_reviews")].map((p) => (
-              <span key={p} style={{ fontSize: "0.78rem", color: "var(--clay-green)", fontWeight: 800 }}>{p}</span>
-            ))}
-          </div>
-
-          {error && (
-            <div style={{ padding: "12px 14px", background: "rgba(232,72,85,0.1)", border: "3px solid rgba(232,72,85,0.25)", borderRadius: 14, marginBottom: 16, color: "var(--clay-red)", fontWeight: 700, fontSize: "0.875rem" }}>
-              {Array.isArray(error)
-                ? <ul style={{ margin: 0, paddingLeft: 18 }}>{error.map((e, i) => <li key={i}>⚠️ {e}</li>)}</ul>
-                : <span>⚠️ {error}</span>
-              }
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              {[{ f: "firstName", l: t("first_name") }, { f: "lastName", l: t("last_name") }].map(({ f, l }) => (
-                <div key={f} className="auth-input-wrap">
-                  <label>{l}</label>
-                  <div style={{ position: "relative" }}>
-                    <i className="fas fa-user auth-input-icon"></i>
-                    <input className="clay-input" placeholder={l} value={form[f]}
-                      onChange={(e) => setForm({ ...form, [f]: e.target.value })}
-                      style={{ paddingLeft: 44, height: 54, marginBottom: 0 }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-            {[
-              { f: "username", l: t("username"), type: "text", i: "fa-user" },
-              { f: "email", l: t("email"), type: "email", i: "fa-envelope" },
-              { f: "password", l: t("password"), type: "password", i: "fa-lock" },
-              { f: "password2", l: t("confirm_password"), type: "password", i: "fa-lock" },
-            ].map(({ f, l, type, i }) => (
-              <div key={f} className="auth-input-wrap">
-                <label>{l}</label>
-                <div style={{ position: "relative" }}>
-                  <i className={`fas ${i} auth-input-icon`}></i>
-                  <input type={type} className="clay-input" placeholder={l} value={form[f]}
-                    onChange={(e) => setForm({ ...form, [f]: e.target.value })}
-                    style={{ paddingLeft: 44, height: 54, marginBottom: 0 }} required />
-                </div>
-              </div>
-            ))}
-            <button type="submit" className="clay-btn clay-btn-red clay-btn-full clay-btn-lg mt-8" style={{ height: 58, fontSize: "1.05rem" }} disabled={loading}>
-              <i className={`fas ${loading ? "fa-spinner fa-spin" : "fa-user-plus"}`}></i>{" "}
-              {loading ? t("creating") : t("create_account")}
-            </button>
-          </form>
-
-          <div className="auth-divider">{t("or")}</div>
-          <p style={{ textAlign: "center", color: "var(--text3)", fontSize: "0.9rem", fontWeight: 600 }}>
-            {t("already_have_account")}{" "}
-            <span className="auth-link" onClick={() => navigate("login")}>{t("sign_in")}</span>
-          </p>
-        </div>
+    <AuthWrap maxWidth={420}>
+      <div style={{ textAlign:"center", marginBottom:24 }}>
+        <div style={{ fontSize:"2.8rem", marginBottom:8 }}>🏔️</div>
+        <h2 style={{ fontFamily:"'Poppins',sans-serif", fontWeight:800, fontSize:"1.55rem", color:"#0f172a", margin:"0 0 6px" }}>Create account</h2>
+        <p style={{ color:"#4a6fa5", fontSize:"0.88rem", margin:0 }}>Join thousands of Nepal travelers</p>
       </div>
-    </div>
+
+      {done && (
+        <div style={{ padding:"12px 14px", background:"#f0fdf4", border:"1.5px solid #86efac", borderRadius:10, marginBottom:16, color:"#15803d", fontWeight:700, textAlign:"center" }}>
+          ✅ Account created! Redirecting to login…
+        </div>
+      )}
+
+      {error && <div style={{ padding:"10px 14px", background:"#fef2f2", border:"1.5px solid #fca5a5", borderRadius:10, marginBottom:16, color:"#c1121f", fontWeight:600, fontSize:"0.85rem" }}>⚠️ {error}</div>}
+
+      {!done && (
+        <form onSubmit={handleSubmit}>
+          <AuthField label="Username" type="text" icon="fa-user" value={username}
+            onChange={e => setUsername(e.target.value)} placeholder="Choose a username" autoFocus />
+          <AuthField label="Password" type="password" icon="fa-lock" value={password}
+            onChange={e => setPassword(e.target.value)} placeholder="Min. 8 characters" />
+          <AuthField label="Confirm Password" type="password" icon="fa-lock" value={password2}
+            onChange={e => setPassword2(e.target.value)} placeholder="Repeat your password" />
+
+          <button type="submit" disabled={loading} style={{
+            width:"100%", height:52, marginTop:8, border:"none", borderRadius:12, cursor:"pointer",
+            background:"linear-gradient(135deg,#1a3a6e,#2563b0)", color:"#fff",
+            fontFamily:"'Poppins',sans-serif", fontWeight:700, fontSize:"1rem",
+            display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+            opacity: loading ? 0.7 : 1, transition:"opacity 0.2s",
+          }}>
+            <i className={`fas ${loading ? "fa-spinner fa-spin" : "fa-user-plus"}`} />
+            {loading ? "Creating…" : "Create Account"}
+          </button>
+        </form>
+      )}
+
+      <p style={{ textAlign:"center", marginTop:20, color:"#94a3b8", fontSize:"0.83rem" }}>
+        Already have an account?{" "}
+        <span onClick={() => navigate("login")} style={{ color:"#2563b0", fontWeight:700, cursor:"pointer" }}>Sign in</span>
+      </p>
+    </AuthWrap>
   );
 }
+
+/* ═══ END ═══ */
+
 

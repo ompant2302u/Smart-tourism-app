@@ -10,236 +10,131 @@ export default function Footer({ navigate }) {
   const handleSub = async (e) => {
     e.preventDefault();
     if (!email) return;
-    try {
-      await api.newsletter(email);
-    } catch {}
+    try { await api.newsletter(email); } catch {}
     setSubDone(true);
     setEmail("");
-    setTimeout(() => setSubDone(false), 4000);
+    setTimeout(() => setSubDone(false), 5000);
   };
 
   return (
-    <footer
-      className="clay-footer"
-      style={{
-        background: "linear-gradient(135deg,#141e30,#243b55,#1b2735)",
-      }}
-    >
+    <footer className="footer">
       <div className="container">
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: 28,
-          }}
-        >
+        <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr 1.3fr", gap: 40, marginBottom: 48 }}>
+
+          {/* Brand column */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-              <img
-                src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Flag_of_Nepal.svg/40px-Flag_of_Nepal.svg.png"
-                alt="Nepal"
-                style={{
-                  height: 28,
-                  borderRadius: 4,
-                  boxShadow: "4px 4px 0px rgba(0,0,0,0.16)",
-                }}
-              />
-              <span
-                className="footer-brand"
-                style={{
-                  background: "linear-gradient(135deg,#ffd166,#ff9966,#ff5e62)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}
-              >
-                TourTech
-              </span>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: "linear-gradient(135deg,var(--mountain-500),var(--forest-600))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem" }}>
+                🏔️
+              </div>
+              <span className="footer-brand">NepalWander</span>
+            </div>
+            <p className="footer-desc">{t("footer_desc")}</p>
+            <div className="footer-social">
+              {[
+                { cls: "fb", icon: "facebook-f" },
+                { cls: "ig", icon: "instagram" },
+                { cls: "yt", icon: "youtube" },
+                { cls: "tw", icon: "twitter" },
+              ].map(s => (
+                <a key={s.cls} href="#" className={`footer-social-link ${s.cls}`} aria-label={s.cls}>
+                  <i className={`fab fa-${s.icon}`} />
+                </a>
+              ))}
             </div>
 
-            <p className="footer-text mb-16">{t("gateway")}</p>
-
-            <div style={{ display: "flex", gap: 8 }}>
-              {["facebook", "instagram", "youtube", "twitter"].map((s, i) => {
-                const socialGradients = [
-                  "linear-gradient(135deg,#1877f2,#3b82f6)",
-                  "linear-gradient(135deg,#f58529,#dd2a7b,#8134af)",
-                  "linear-gradient(135deg,#ff0000,#ff4d4d)",
-                  "linear-gradient(135deg,#1da1f2,#60a5fa)",
-                ];
-
-                return (
-                  <a
-                    key={s}
-                    href="#"
-                    className="footer-social"
-                    style={{
-                      background: socialGradients[i],
-                      color: "#fff",
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      boxShadow: "0 8px 18px rgba(0,0,0,0.18)",
-                    }}
-                  >
-                    <i className={`fab fa-${s}`}></i>
-                  </a>
-                );
-              })}
+            {/* Contact */}
+            <div style={{ marginTop: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, color: "rgba(255,255,255,0.5)", fontSize: "0.82rem", marginBottom: 6 }}>
+                <i className="fas fa-phone" style={{ color: "var(--sunset-400)", width: 14 }} />
+                {t("footer_ntb")}: +977-1-4256909
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, color: "rgba(255,255,255,0.5)", fontSize: "0.82rem" }}>
+                <i className="fas fa-envelope" style={{ color: "var(--mountain-300)", width: 14 }} />
+                info@nepalwander.com
+              </div>
             </div>
           </div>
 
+          {/* Explore */}
           <div>
-            <p
-              className="footer-heading"
-              style={{
-                color: "#fff",
-                background: "linear-gradient(135deg,#ffd166,#ffb347)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              {t("explore_footer")}
-            </p>
-
+            <p className="footer-heading">{t("explore_footer")}</p>
             {[
               ["destinations", t("destinations")],
-              ["hotels", t("hotels")],
+              ["hotels", t("footer_hotels_homestays")],
+              ["guides", t("local_guides")],
               ["transport", t("transport")],
-              ["guides", t("guides")],
-              ["estimator", "Budget Estimator"],
+              ["estimator", t("footer_budget_planner")],
             ].map(([pg, lbl]) => (
-              <a key={pg} className="footer-link" onClick={() => navigate(pg)}>
-                {lbl}
-              </a>
+              <a key={pg} className="footer-link" onClick={() => navigate(pg)}>{lbl}</a>
             ))}
           </div>
 
+          {/* Features */}
           <div>
-            <p
-              className="footer-heading"
-              style={{
-                color: "#fff",
-                background: "linear-gradient(135deg,#36d1dc,#5b86e5)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              {t("support")}
-            </p>
-
+            <p className="footer-heading">{t("footer_features")}</p>
             {[
-              ["safety", t("safety_info_footer")],
-              ["about", t("about_footer")],
-              ["contact", t("contact_footer")],
+              ["ai-itinerary",   t("footer_ai_planner")],
+              ["interactive-map", t("footer_interactive_map")],
+              ["safety",          t("footer_safety_alerts")],
+              ["about",           t("about_us")],
+              ["contact",         t("contact_us")],
             ].map(([pg, lbl]) => (
-              <a key={pg} className="footer-link" onClick={() => navigate(pg)}>
-                {lbl}
-              </a>
+              <a key={pg} className="footer-link" onClick={() => navigate(pg)}>{lbl}</a>
             ))}
           </div>
 
+          {/* Newsletter */}
           <div>
-            <p
-              className="footer-heading"
-              style={{
-                color: "#fff",
-                background: "linear-gradient(135deg,#11998e,#38ef7d)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              {t("newsletter")}
-            </p>
-
-            <p className="footer-text mb-12" style={{ fontSize: "0.85rem" }}>
-              {t("newsletter_sub")}
+            <p className="footer-heading">{t("footer_stay_updated")}</p>
+            <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.83rem", marginBottom: 14, lineHeight: 1.6 }}>
+              {t("footer_newsletter_brief")}
             </p>
 
             {subDone ? (
-              <div
-                style={{
-                  padding: "10px 14px",
-                  background: "linear-gradient(135deg,rgba(17,153,142,0.14),rgba(56,239,125,0.14))",
-                  border: "2px solid rgba(17,153,142,0.3)",
-                  borderRadius: 12,
-                  color: "#38ef7d",
-                  fontWeight: 800,
-                  fontSize: "0.85rem",
-                  marginBottom: 14,
-                  boxShadow: "0 8px 18px rgba(17,153,142,0.12)",
-                }}
-              >
-                ✅ Subscribed!
+              <div style={{ padding: "10px 14px", background: "rgba(22,163,74,0.12)", border: "1px solid rgba(22,163,74,0.25)", borderRadius: "var(--radius-lg)", color: "var(--forest-300)", fontWeight: 700, fontSize: "0.85rem", marginBottom: 14 }}>
+                {t("footer_subscribed_short")}
               </div>
             ) : (
-              <form onSubmit={handleSub} style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-                <input
-                  type="email"
-                  className="clay-input"
-                  placeholder={t("your_email")}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  style={{
-                    flex: 1,
-                    marginBottom: 0,
-                    background: "linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))",
-                  }}
-                />
-                <button
-                  type="submit"
-                  className="clay-btn clay-btn-red clay-btn-sm"
-                  style={{
-                    flexShrink: 0,
-                    background: "linear-gradient(135deg,#ff5f6d,#ffc371)",
-                    color: "#fff",
-                    border: "none",
-                    boxShadow: "0 10px 20px rgba(255,95,109,0.22)",
-                  }}
-                >
-                  {t("subscribe")}
+              <form onSubmit={handleSub} style={{ marginBottom: 14 }}>
+                <div className="footer-input-wrap">
+                  <input type="email" className="footer-input" placeholder={t("newsletter_placeholder")} value={email} onChange={e => setEmail(e.target.value)} required />
+                </div>
+                <button type="submit" className="btn btn-accent w-full btn-sm">
+                  <i className="fas fa-paper-plane" /> {t("subscribe")}
                 </button>
               </form>
             )}
 
-            <p className="footer-text" style={{ fontSize: "0.82rem" }}>
-              <i
-                className="fas fa-phone"
-                style={{
-                  color: "#ff9966",
-                  marginRight: 6,
-                }}
-              ></i>
-              Nepal Tourism Board: +977-1-4256909
-            </p>
+            {/* Safety badge */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: "rgba(37,99,176,0.08)", border: "1px solid rgba(37,99,176,0.15)", borderRadius: "var(--radius-md)" }}>
+              <i className="fas fa-shield-alt" style={{ color: "var(--mountain-400)", fontSize: "1rem" }} />
+              <div>
+                <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.76rem", fontWeight: 600 }}>{t("footer_realtime_safety")}</div>
+                <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.7rem" }}>{t("footer_monitoring")}</div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <hr
-          className="footer-divider"
-          style={{
-            borderColor: "rgba(255,255,255,0.12)",
-            background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.16),transparent)",
-          }}
-        />
+        <hr className="footer-divider" />
 
-        <p className="footer-text" style={{ textAlign: "center", fontSize: "0.85rem" }}>
-          © 2026 TourTech Pvt.Ltd. {t("all_rights")} | {t("built_with")}{" "}
-          <i
-            className="fas fa-heart"
-            style={{
-              background: "linear-gradient(135deg,#ff5f6d,#ff9966)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-          ></i>{" "}
-          {t("for_travelers")}
-        </p>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <p className="footer-copy">{t("footer_copyright")}</p>
+          <div style={{ display: "flex", gap: 16 }}>
+            <a style={{ color: "rgba(255,255,255,0.35)", fontSize: "0.78rem", cursor: "pointer" }}>{t("footer_privacy")}</a>
+            <a style={{ color: "rgba(255,255,255,0.35)", fontSize: "0.78rem", cursor: "pointer" }}>{t("footer_terms")}</a>
+            <a style={{ color: "rgba(255,255,255,0.35)", fontSize: "0.78rem", cursor: "pointer" }}>{t("footer_cookie")}</a>
+          </div>
+        </div>
       </div>
 
       <style>{`
-        @media(max-width:768px){
-          .clay-footer .container>div{
-            grid-template-columns:1fr 1fr!important;
-          }
+        @media(max-width:1024px){
+          .footer .container > div:first-child { grid-template-columns: 1fr 1fr !important; }
+        }
+        @media(max-width:640px){
+          .footer .container > div:first-child { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </footer>

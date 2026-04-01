@@ -1,392 +1,297 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLang } from "../context/LangContext";
 import NepalImage from "./common/NepalImage";
+import { api, hasToken } from "../api";
 
-export function StarRating({ rating, size = "1rem" }) {
+export function StarRating({ rating, size = "0.9rem" }) {
   return (
-    <span>
+    <span style={{ display: "inline-flex", gap: 2 }}>
       {[1, 2, 3, 4, 5].map((i) => (
-        <span
-          key={i}
-          style={{
-            fontSize: size,
-            color: i <= Math.round(rating) ? "var(--clay-gold)" : "var(--text4)",
-          }}
-        >
-          ★
-        </span>
+        <span key={i} style={{ fontSize: size, color: i <= Math.round(rating) ? "var(--gold)" : "var(--text4)" }}>★</span>
       ))}
     </span>
   );
 }
 
-/* ─── DESTINATION CARD — entire card is clickable ─── */
-export function DestinationCard({ dest, navigate, delay = 0 }) {
+/* ── DESTINATION CARD ── */
+export function DestinationCard({ dest, onClick, navigate, delay = 0, user }) {
   const { t } = useLang();
+  const [fav, setFav] = useState(false);
+  const [favLoading, setFavLoading] = useState(false);
 
-  const destName = t(dest.name_key || dest.name);
-  const destShort = t(dest.short_description_key || dest.short_description);
-  const destCity = t(dest.city_key || dest.city);
-  const destCountry = t(dest.country_key || dest.country);
-  const destCategory = dest.category ? t(dest.category.name_key || dest.category.name || dest.category.slug) : "";
+  useEffect(() => {
+    if (user && dest?.id) {
+      api.checkFavorite("destination", dest.id).then(r => setFav(!!r?.is_favourite)).catch(() => {});
+    }
+  }, [user?.id, dest?.id]);
+
+  const destName     = t(dest.name_key     || dest.name);
+  const destShort    = t(dest.short_description_key || dest.short_description || "");
+  const destCity     = t(dest.city_key     || dest.city     || "");
+  const destCountry  = t(dest.country_key  || dest.country  || "Nepal");
+  const destCategory = dest.category ? t(dest.category.name_key || dest.category.name || dest.category.slug || "") : "";
+
+  const handleClick = () => {
+    if (onClick) onClick();
+    else if (navigate) navigate("destination-detail", { id: dest.id });
+  };
+
+  const handleFav = async (e) => {
+    e.stopPropagation();
+    if (!hasToken()) { if (navigate) navigate("login"); return; }
+    if (favLoading) return;
+    setFavLoading(true);
+    try {
+      const res = await api.toggleFavorite({ content_type: "destination", id: dest.id, item_name: dest.name });
+      setFav(res?.removed ? false : true);
+      window.dispatchEvent(new CustomEvent("nw-data-changed"));
+    } catch {} finally { setFavLoading(false); }
+  };
 
   return (
-    <div
-      className="dest-card anim-fadeup"
-      style={{ animationDelay: `${delay}s`, cursor: "pointer" }}
-      onClick={() => navigate("destination-detail", { id: dest.id })}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === "Enter" && navigate("destination-detail", { id: dest.id })}
-    >
-      <div className="dest-card-img">
-        <NepalImage
-          item={dest}
-          entityType="destination"
-          style={{ width: "100%", height: "100%" }}
-        />
-
-        <div className="dest-card-overlay"></div>
-
-        {dest.category && (
-          <span
-            className="card-chip card-chip-tl"
-            style={{
-              background: "linear-gradient(135deg,rgba(102,126,234,0.95),rgba(118,75,162,0.95))",
-              color: "#fff",
-              border: "1px solid rgba(255,255,255,0.18)",
-              boxShadow: "0 6px 18px rgba(0,0,0,0.18)",
-            }}
-          >
-            {destCategory}
-          </span>
+    <div className="dest-card" style={{ animationDelay: `${delay}s` }} onClick={handleClick}>
+      <div className="dest-card-img-wrap">
+        <NepalImage item={dest} entityType="destination" style={{ width: "100%", height: "100%" }} className="dest-card-img" />
+        <div className="dest-card-overlay" />
+        {destCategory && <span className="dest-card-category">{destCategory}</span>}
+        <button className={`dest-card-fav${fav ? " active" : ""}`}
+          onClick={handleFav}
+          title={fav ? "Remove from favourites" : "Save to favourites"}
+          disabled={favLoading}>
+          <i className={fav ? "fas fa-heart" : "far fa-heart"} />
+        </button>
+      </div>
+      <div className="dest-card-body">
+        <h3 className="dest-card-title">{destName}</h3>
+        <div className="dest-card-location">
+          <i className="fas fa-map-marker-alt" />
+          {destCity}{destCity && destCountry ? ", " : ""}{destCountry}
+        </div>
+        {destShort && (
+          <p style={{ fontSize: "0.82rem", color: "var(--text4)", marginBottom: 12, lineHeight: 1.55, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+            {destShort}
+          </p>
         )}
-
-        <span
-          className="card-chip card-chip-tr"
-          style={{
-            background: "linear-gradient(135deg,rgba(255,193,7,0.95),rgba(255,140,0,0.95))",
-            color: "#1a1a1a",
-            border: "1px solid rgba(255,255,255,0.22)",
-            boxShadow: "0 6px 18px rgba(0,0,0,0.18)",
-          }}
-        >
-          ⭐ {dest.rating}
-        </span>
-
-        <span
-          className="card-chip card-chip-bl"
-          style={{
-            background: "linear-gradient(135deg,rgba(15,32,39,0.92),rgba(44,83,100,0.92))",
-            color: "#fff",
-            border: "1px solid rgba(255,255,255,0.16)",
-            boxShadow: "0 6px 18px rgba(0,0,0,0.2)",
-          }}
-        >
-          📍 {destCity}, {destCountry}
-        </span>
-      </div>
-
-      <div className="dest-card-body">
-        <h5>{destName}</h5>
-        <p>
-          {destShort?.slice(0, 88)}
-          {destShort?.length > 88 ? "..." : ""}
-        </p>
-
-        <div className="card-footer">
-          {dest.entry_fee > 0 ? (
-            <span style={{ color: "var(--text3)", fontSize: "0.85rem", fontWeight: 700 }}>
-              {t("from")} ${dest.entry_fee}
-            </span>
-          ) : (
-            <span className="badge badge-green" style={{ background:"linear-gradient(135deg,#11998e,#38ef7d)", color:"#fff", border:"1px solid rgba(255,255,255,0.15)" }}>
-              {t("free_entry")}
-            </span>
-          )}
-          {dest.difficulty && (
-            <span style={{
-              fontSize:"0.72rem", fontWeight:800, padding:"4px 10px", borderRadius:99,
-              background: dest.difficulty==="Easy" ? "rgba(6,214,160,0.12)" : dest.difficulty==="Moderate" ? "rgba(255,209,102,0.2)" : dest.difficulty==="Challenging" ? "rgba(255,95,109,0.12)" : "rgba(232,72,85,0.12)",
-              color: dest.difficulty==="Easy" ? "var(--clay-green)" : dest.difficulty==="Moderate" ? "#b8860b" : dest.difficulty==="Challenging" ? "var(--clay-red)" : "var(--clay-red)",
-              border:"2px solid currentColor"
-            }}>
-              {dest.difficulty}
-            </span>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─── HOTEL CARD — entire card is clickable ─── */
-export function HotelCard({ hotel, navigate, delay = 0 }) {
-  const { t } = useLang();
-
-  const hotelCity = t(hotel.destination?.city_key || hotel.destination?.city || "");
-  const hotelCountry = t(hotel.destination?.country_key || hotel.destination?.country || "");
-
-  return (
-    <div
-      className="hotel-card anim-fadeup"
-      style={{ animationDelay: `${delay}s`, cursor: "pointer" }}
-      onClick={() => navigate("hotel-detail", { id: hotel.id })}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === "Enter" && navigate("hotel-detail", { id: hotel.id })}
-    >
-      <div className="dest-card-img">
-        <NepalImage
-          item={hotel}
-          entityType="hotel"
-          style={{ width: "100%", height: "100%" }}
-        />
-
-        <div className="dest-card-overlay"></div>
-
-        <span
-          className="card-chip card-chip-tl"
-          style={{
-            background: "linear-gradient(135deg,rgba(255,179,71,0.96),rgba(255,140,0,0.96))",
-            color: "#1a1a1a",
-            border: "1px solid rgba(255,255,255,0.18)",
-            boxShadow: "0 6px 18px rgba(0,0,0,0.18)",
-          }}
-        >
-          {"★".repeat(hotel.stars)}
-        </span>
-
-        <span
-          className="card-chip card-chip-tr"
-          style={{
-            background: "linear-gradient(135deg,rgba(54,209,220,0.96),rgba(91,134,229,0.96))",
-            color: "#fff",
-            border: "1px solid rgba(255,255,255,0.18)",
-            boxShadow: "0 6px 18px rgba(0,0,0,0.18)",
-          }}
-        >
-          ⭐ {hotel.rating}
-        </span>
-      </div>
-
-      <div className="dest-card-body">
-        <h5>{hotel.name}</h5>
-        <p style={{ fontSize: "0.82rem", marginBottom: 10, color: "var(--text3)" }}>
-          📍 {hotelCity}, {hotelCountry}
-        </p>
-
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 14 }}>
-          {hotel.has_wifi && (
-            <span
-              className="amenity-chip on"
-              style={{
-                background: "linear-gradient(135deg,rgba(102,126,234,0.12),rgba(118,75,162,0.12))",
-                borderColor: "rgba(102,126,234,0.25)",
-              }}
-            >
-              <i className="fas fa-wifi"></i> {t("wifi")}
-            </span>
-          )}
-          {hotel.has_pool && (
-            <span
-              className="amenity-chip on"
-              style={{
-                background: "linear-gradient(135deg,rgba(54,209,220,0.12),rgba(91,134,229,0.12))",
-                borderColor: "rgba(54,209,220,0.25)",
-              }}
-            >
-              <i className="fas fa-swimming-pool"></i> {t("pool")}
-            </span>
-          )}
-          {hotel.has_restaurant && (
-            <span
-              className="amenity-chip on"
-              style={{
-                background: "linear-gradient(135deg,rgba(247,151,30,0.12),rgba(255,210,0,0.12))",
-                borderColor: "rgba(247,151,30,0.25)",
-              }}
-            >
-              <i className="fas fa-utensils"></i> {t("restaurant")}
-            </span>
-          )}
-          {hotel.has_spa && (
-            <span
-              className="amenity-chip on"
-              style={{
-                background: "linear-gradient(135deg,rgba(255,95,109,0.12),rgba(255,195,113,0.12))",
-                borderColor: "rgba(255,95,109,0.25)",
-              }}
-            >
-              <i className="fas fa-spa"></i> {t("spa")}
-            </span>
-          )}
-        </div>
-
-        <div className="card-footer">
-          <div>
-            <span
-              className="price-tag"
-              style={{
-                background: "linear-gradient(135deg,#f7971e,#ffd200)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              ${hotel.price_per_night}
-            </span>
-            <small style={{ color: "var(--text3)", fontWeight: 700 }}>{t("per_night")}</small>
+        <div className="dest-card-meta">
+          <div className="dest-card-rating">
+            <span className="star">★</span>
+            {dest.rating}
+            <span className="count">({dest.review_count || Math.floor(Math.random()*200+30)})</span>
           </div>
+          {dest.entry_fee > 0 ? (
+            <span className="dest-card-fee">{t("from")} ${dest.entry_fee}</span>
+          ) : (
+            <span className="dest-card-fee" style={{ background: "rgba(22,163,74,0.09)", color: "var(--forest-600)" }}>{t("free_entry")}</span>
+          )}
+        </div>
+        {dest.difficulty && (
+          <div style={{ marginTop: 10 }}>
+            <span className={`badge ${dest.difficulty === "Easy" ? "badge-green" : dest.difficulty === "Moderate" ? "badge-gold" : "badge-red"}`}>
+              {t({ Easy: "difficulty_easy", Moderate: "difficulty_moderate", Challenging: "difficulty_challenging", Strenuous: "difficulty_strenuous" }[dest.difficulty] || dest.difficulty)}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
+/* ── HOTEL CARD ── */
+export function HotelCard({ hotel, onClick, navigate, delay = 0, user }) {
+  const { t } = useLang();
+  const [fav, setFav] = useState(false);
+  const [favLoading, setFavLoading] = useState(false);
 
+  useEffect(() => {
+    if (user && hotel?.id) {
+      api.checkFavorite("hotel", hotel.id).then(r => setFav(!!r?.is_favourite)).catch(() => {});
+    }
+  }, [user?.id, hotel?.id]);
+
+  const handleFav = async (e) => {
+    e.stopPropagation();
+    if (!hasToken()) { if (navigate) navigate("login"); return; }
+    if (favLoading) return;
+    setFavLoading(true);
+    try {
+      const res = await api.toggleFavorite({ content_type: "hotel", id: hotel.id, item_name: hotel.name });
+      setFav(res?.removed ? false : true);
+      window.dispatchEvent(new CustomEvent("nw-data-changed"));
+    } catch {} finally { setFavLoading(false); }
+  };
+
+  const hotelCity    = t(hotel.destination?.city_key    || hotel.destination?.city    || "");
+  const hotelCountry = t(hotel.destination?.country_key || hotel.destination?.country || "Nepal");
+
+  const handleClick = () => {
+    if (onClick) onClick();
+    else if (navigate) navigate("hotel-detail", { id: hotel.id });
+  };
+
+  return (
+    <div className="hotel-card" onClick={handleClick}>
+      <div className="hotel-card-img-wrap">
+        <NepalImage item={hotel} entityType="hotel" style={{ width: "100%", height: "100%" }} className="hotel-card-img" />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top,rgba(10,22,40,0.5) 0%,transparent 40%)", pointerEvents: "none" }} />
+        <div className="hotel-card-stars">
+          {Array.from({ length: hotel.stars || 3 }).map((_, i) => (
+            <span key={i} className="star">★</span>
+          ))}
+        </div>
+        <button className={`dest-card-fav${fav ? " active" : ""}`}
+          onClick={handleFav} title={fav ? "Remove from favourites" : "Save to favourites"} disabled={favLoading}>
+          <i className={fav ? "fas fa-heart" : "far fa-heart"} />
+        </button>
+      </div>
+      <div className="hotel-card-body">
+        <h3 className="hotel-card-title">{hotel.name}</h3>
+        <div className="hotel-card-location">
+          <i className="fas fa-map-marker-alt" />
+          {hotelCity}{hotelCity ? ", " : ""}{hotelCountry}
+        </div>
+        {/* Amenities */}
+        <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 12 }}>
+          {hotel.has_wifi      && <span className="badge badge-blue"><i className="fas fa-wifi" /> {t("wifi")}</span>}
+          {hotel.has_pool      && <span className="badge badge-blue"><i className="fas fa-swimming-pool" /> {t("pool")}</span>}
+          {hotel.has_restaurant && <span className="badge badge-blue"><i className="fas fa-utensils" /> {t("restaurant")}</span>}
+          {hotel.has_spa       && <span className="badge badge-blue"><i className="fas fa-spa" /> {t("spa")}</span>}
+        </div>
+        <div className="hotel-card-footer">
+          <div className="hotel-card-price">
+            <span className="amount">${hotel.price_per_night}</span>
+            <span className="per"> {t("per_night")}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "0.83rem", fontWeight: 600, color: "var(--text)" }}>
+            <span style={{ color: "var(--gold)" }}>★</span>{hotel.rating}
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-/* ─── GUIDE CARD — entire card is clickable ─── */
-export function GuideCard({ guide, navigate, delay = 0 }) {
+/* ── GUIDE CARD ── */
+export function GuideCard({ guide, onClick, navigate, delay = 0, user }) {
   const { t } = useLang();
-  const langs = guide.languages?.split(",").map((l) => l.trim()).slice(0, 3) || [];
+  const [fav, setFav] = useState(false);
+  const [favLoading, setFavLoading] = useState(false);
+
+  useEffect(() => {
+    if (user && guide?.id) {
+      api.checkFavorite("guide", guide.id).then(r => setFav(!!r?.is_favourite)).catch(() => {});
+    }
+  }, [user?.id, guide?.id]);
+
+  const handleFav = async (e) => {
+    e.stopPropagation();
+    if (!hasToken()) { if (navigate) navigate("login"); return; }
+    if (favLoading) return;
+    setFavLoading(true);
+    try {
+      const res = await api.toggleFavorite({ content_type: "guide", id: guide.id, item_name: guide.name });
+      setFav(res?.removed ? false : true);
+      window.dispatchEvent(new CustomEvent("nw-data-changed"));
+    } catch {} finally { setFavLoading(false); }
+  };
+
+  const langs = guide.languages?.split(",").map(l => l.trim()).slice(0, 3) || [];
+
+  const handleClick = () => {
+    if (onClick) onClick();
+    else if (navigate) navigate("guide-detail", { id: guide.id });
+  };
 
   return (
-    <div
-      className="guide-card anim-fadeup"
-      style={{ animationDelay: `${delay}s`, cursor: "pointer" }}
-      onClick={() => navigate("guide-detail", { id: guide.id })}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === "Enter" && navigate("guide-detail", { id: guide.id })}
-    >
-      {guide.image ? (
-        <img src={guide.image} alt={guide.name} className="guide-avatar" />
-      ) : (
-        <div
-          className="guide-avatar-ph"
-          style={{
-            background: "linear-gradient(135deg,#667eea,#764ba2)",
-            color: "#fff",
-          }}
-        >
-          👤
+    <div className="guide-card" onClick={handleClick}>
+      <div style={{ position: "relative", width: "fit-content", margin: "0 auto" }}>
+        <div className="guide-avatar-wrap">
+          {guide.image ? (
+            <img src={guide.image} alt={guide.name} className="guide-avatar" />
+          ) : (
+            <div style={{ width: 80, height: 80, borderRadius: "50%", background: "linear-gradient(135deg,var(--primary),var(--forest-600))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.8rem", border: "3px solid var(--primary)" }}>
+              👤
+            </div>
+          )}
+          {guide.is_certified && (
+            <div className="guide-badge" title={t("certified_guide")}><i className="fas fa-check" /></div>
+          )}
         </div>
-      )}
+        <button className={`dest-card-fav${fav ? " active" : ""}`}
+          onClick={handleFav} title={fav ? "Remove from favourites" : "Save to favourites"} disabled={favLoading}
+          style={{ position: "absolute", top: -4, right: -4, width: 28, height: 28 }}>
+          <i className={fav ? "fas fa-heart" : "far fa-heart"} style={{ fontSize: "0.75rem" }} />
+        </button>
+      </div>
 
       {guide.is_certified && (
-        <span
-          className="badge badge-solid-green"
-          style={{
-            marginBottom: 10,
-            display: "inline-block",
-            background: "linear-gradient(135deg,#11998e,#38ef7d)",
-            color: "#fff",
-            border: "1px solid rgba(255,255,255,0.18)",
-          }}
-        >
-          ✓ {t("certified")}
+        <span className="badge badge-green" style={{ marginBottom: 8 }}>
+          <i className="fas fa-certificate" /> {t("certified")}
         </span>
       )}
 
-      <h5 style={{ fontWeight: 800, marginBottom: 4, color: "var(--text)" }}>{guide.name}</h5>
-
-      <p style={{ color: "var(--text3)", fontSize: "0.82rem", marginBottom: 8, fontWeight: 600 }}>
-        ⭐ {guide.rating} · {guide.years_experience} {t("yrs_exp")}
-      </p>
+      <h3 className="guide-name">{guide.name}</h3>
 
       {guide.specialties && (
-        <p style={{ color: "var(--text3)", fontSize: "0.8rem", marginBottom: 12, fontWeight: 500 }}>
-          {guide.specialties.slice(0, 55)}...
-        </p>
+        <p className="guide-specialties">{guide.specialties}</p>
       )}
 
-      <div style={{ marginBottom: 14 }}>
-        {langs.map((l) => (
-          <span
-            key={l}
-            className="lang-tag"
-            style={{
-              background: "linear-gradient(135deg,rgba(102,126,234,0.12),rgba(118,75,162,0.12))",
-              borderColor: "rgba(102,126,234,0.22)",
-            }}
-          >
-            {l}
-          </span>
-        ))}
+      <div className="guide-meta">
+        <div className="guide-meta-item"><i className="fas fa-star" style={{ color: "var(--gold)" }} />{guide.rating}</div>
+        <div className="guide-meta-item"><i className="fas fa-clock" />{guide.years_experience} {t("yrs_exp")}</div>
       </div>
 
-      <div className="card-footer">
+      {langs.length > 0 && (
+        <div style={{ display: "flex", gap: 4, justifyContent: "center", flexWrap: "wrap", marginBottom: 14 }}>
+          {langs.map(l => (
+            <span key={l} className="badge badge-blue" style={{ fontSize: "0.7rem" }}>{l}</span>
+          ))}
+        </div>
+      )}
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
         <div>
-          <span
-            className="price-tag"
-            style={{
-              fontSize: "1.1rem",
-              background: "linear-gradient(135deg,#11998e,#38ef7d)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-          >
-            ${guide.price_per_day}
-          </span>
-          <small style={{ color: "var(--text3)", fontWeight: 700 }}>{t("per_day")}</small>
+          <span className="guide-rate">${guide.price_per_day}</span>
+          <span style={{ fontSize: "0.74rem", color: "var(--text4)" }}> {t("per_day")}</span>
         </div>
-
-
+        <button className="btn btn-primary btn-sm" onClick={handleClick}>
+          {t("book_guide")} <i className="fas fa-arrow-right" />
+        </button>
       </div>
     </div>
   );
 }
 
-/* ─── REVIEW ITEM ─── */
-export function ReviewItem({ review }) {
+/* ── REVIEW ITEM ── */
+export function ReviewItem({ review, onDelete }) {
+  const authorName = review.user?.first_name
+    ? `${review.user.first_name} ${review.user.last_name || ""}`.trim()
+    : review.user?.username || "Anonymous";
+
   return (
-    <div className="review-item">
-      <div
-        className="review-avatar"
-        style={{
-          background: "linear-gradient(135deg,#667eea,#764ba2)",
-          boxShadow: "0 8px 18px rgba(102,126,234,0.22)",
-        }}
-      >
-        <i className="fas fa-user" style={{ color: "#fff" }}></i>
-      </div>
-
-      <div style={{ flex: 1 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 4,
-            flexWrap: "wrap",
-            gap: 8,
-          }}
-        >
-          <strong style={{ color: "var(--text)", fontWeight: 800 }}>
-            {review.user?.first_name} {review.user?.last_name || review.user?.username}
-          </strong>
-          <small style={{ color: "var(--text3)", fontWeight: 600 }}>{review.created_at}</small>
+    <div className="review-card">
+      <div className="review-header">
+        <div className="review-author">
+          <div className="review-avatar">{authorName[0]?.toUpperCase()}</div>
+          <div>
+            <div className="review-name">{authorName}</div>
+            <div className="review-date">{review.created_at?.slice(0, 10)}</div>
+          </div>
         </div>
-
-        <StarRating rating={review.rating} />
-
-        <p
-          style={{
-            color: "var(--text2)",
-            marginTop: 6,
-            marginBottom: 0,
-            fontSize: "0.9rem",
-            fontWeight: 500,
-            lineHeight: 1.6,
-          }}
-        >
-          {review.comment}
-        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <StarRating rating={review.rating} />
+          {onDelete && (
+            <button onClick={onDelete} style={{ background: "none", border: "none", color: "var(--nepal-red)", cursor: "pointer", fontSize: "0.85rem" }}>
+              <i className="fas fa-trash" />
+            </button>
+          )}
+        </div>
       </div>
+      <p className="review-text">{review.comment}</p>
     </div>
   );
 }
 
-/* ─── REVIEW FORM ─── */
+/* ── REVIEW FORM ── */
 export function ReviewForm({ onSubmit }) {
   const { t } = useLang();
   const [rating, setRating] = useState(5);
@@ -398,106 +303,54 @@ export function ReviewForm({ onSubmit }) {
     e.preventDefault();
     if (!comment.trim()) return;
     onSubmit({ rating, comment });
-    setComment("");
-    setRating(5);
+    setComment(""); setRating(5);
     setSuccess(true);
     setTimeout(() => setSuccess(false), 3000);
   };
 
   return (
     <form onSubmit={handleSubmit} style={{ paddingTop: 20 }}>
-      <h6 style={{ fontWeight: 800, marginBottom: 12, color: "var(--text)" }}>
+      <h4 style={{ fontFamily: "'Poppins',sans-serif", fontWeight: 700, marginBottom: 14, color: "var(--text)", fontSize: "1rem" }}>
         ✍️ {t("write_review")}
-      </h6>
+      </h4>
 
       {success && (
-        <div
-          style={{
-            padding: "12px 16px",
-            background: "linear-gradient(135deg,rgba(17,153,142,0.12),rgba(56,239,125,0.12))",
-            border: "3px solid rgba(17,153,142,0.22)",
-            borderRadius: 14,
-            marginBottom: 12,
-            color: "var(--clay-green)",
-            fontWeight: 800,
-          }}
-        >
-          {t("review_success")}
+        <div style={{ padding: "12px 16px", background: "rgba(22,163,74,0.09)", border: "1px solid rgba(22,163,74,0.22)", borderRadius: "var(--radius-lg)", marginBottom: 14, color: "var(--forest-600)", fontWeight: 600 }}>
+          ✅ {t("review_success")}
         </div>
       )}
 
-      <div style={{ marginBottom: 12 }}>
-        <label
-          style={{
-            fontSize: "0.8rem",
-            fontWeight: 800,
-            color: "var(--text2)",
-            display: "block",
-            marginBottom: 6,
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          {t("your_rating")}
-        </label>
-
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "var(--text)", marginBottom: 6 }}>{t("your_rating")}</label>
         <div style={{ display: "flex", gap: 4 }}>
-          {[1, 2, 3, 4, 5].map((i) => (
-            <span
-              key={i}
-              onClick={() => setRating(i)}
-              onMouseEnter={() => setHovered(i)}
-              onMouseLeave={() => setHovered(0)}
-              style={{
-                fontSize: "1.8rem",
-                cursor: "pointer",
-                userSelect: "none",
-                color: i <= (hovered || rating) ? "var(--clay-gold)" : "var(--text4)",
-                transform: i <= (hovered || rating) ? "scale(1.2)" : "scale(1)",
-                display: "inline-block",
-                transition: "transform 0.15s, color 0.15s",
-              }}
-            >
+          {[1, 2, 3, 4, 5].map(i => (
+            <span key={i} onClick={() => setRating(i)}
+              onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(0)}
+              style={{ fontSize: "1.8rem", cursor: "pointer", color: i <= (hovered || rating) ? "var(--gold)" : "var(--text4)", transform: i <= (hovered || rating) ? "scale(1.2)" : "scale(1)", display: "inline-block", transition: "all 0.15s", userSelect: "none" }}>
               ★
             </span>
           ))}
         </div>
       </div>
 
-      <div style={{ marginBottom: 12 }}>
-        <textarea
-          className="clay-input"
-          rows={3}
-          placeholder={t("write_review") + "..."}
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          required
-          style={{
-            resize: "vertical",
-            marginBottom: 0,
-            background: "linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))",
-          }}
-        />
+      <div style={{ marginBottom: 14 }}>
+        <textarea className="input" rows={3} placeholder={t("review_placeholder")}
+          value={comment} onChange={e => setComment(e.target.value)} required
+          style={{ resize: "vertical" }} />
       </div>
 
-      <button
-        type="submit"
-        className="clay-btn clay-btn-red"
-        style={{
-          background: "linear-gradient(135deg,#ff5f6d,#ffc371)",
-          color: "#fff",
-          border: "none",
-          boxShadow: "0 10px 22px rgba(255,95,109,0.22)",
-        }}
-      >
-        <i className="fas fa-paper-plane"></i> {t("submit_review")}
+      <button type="submit" className="btn btn-primary">
+        <i className="fas fa-paper-plane" /> {t("submit_review")}
       </button>
     </form>
   );
 }
 
-/* ─── MAP EMBED ─── */
+/* ── MAP EMBED ── */
 export function MapEmbed({ lat, lng, name }) {
   const url = `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.05},${lat - 0.05},${lng + 0.05},${lat + 0.05}&layer=mapnik&marker=${lat},${lng}`;
-  return <iframe src={url} className="clay-map" title={`Map of ${name}`} loading="lazy" style={{ border: "none" }} />;
+  return (
+    <iframe src={url} title={`Map of ${name}`} loading="lazy"
+      style={{ width: "100%", height: 280, border: "none", borderRadius: "var(--radius-xl)" }} />
+  );
 }

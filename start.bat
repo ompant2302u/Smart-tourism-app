@@ -6,7 +6,7 @@ echo ========================================
 echo.
 echo [1/3] Setting up backend...
 cd /d "%~dp0backend"
-pip install djangorestframework django-cors-headers djangorestframework-simplejwt whitenoise --quiet
+pip install django djangorestframework django-cors-headers djangorestframework-simplejwt whitenoise --quiet
 python manage.py migrate --run-syncdb 2>nul
 python manage.py migrate 2>nul
 python manage.py collectstatic --noinput 2>nul

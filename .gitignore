@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+backend_env/
+venv/
+env/
+.venv/
+
+# Django
+backend/db.sqlite3
+backend/media/
+backend/staticfiles/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Env files — never commit secrets
+backend/.env
+frontend/.env
+frontend/.env.*
+.env
+
+# OS
+.DS_Store
+Thumbs.db

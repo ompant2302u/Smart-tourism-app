@@ -1,4 +1,4 @@
-const BASE = "http://127.0.0.1:8000/api";
+const BASE = (import.meta.env.VITE_API_URL || "") + "/api";
 
 const getAccessToken = () => localStorage.getItem("nw-token");
 const getRefreshToken = () => localStorage.getItem("nw-refresh");
@@ -82,18 +82,12 @@ export const api = {
   removeFavorite: (data) => del("/favorites/", data, true),
   checkFavorite: (content_type, id) => get(`/favorites/check/?content_type=${content_type}&id=${id}`, true),
   async toggleFavorite(data) {
-    const postData = { content_type: data.content_type, item_name: data.item_name || "" };
+    // POST acts as toggle: adds if not exists, removes if already saved
+    const body = { content_type: data.content_type, item_name: data.item_name || "" };
     if (data.content_type !== "transport") {
-      postData[`${data.content_type}_id`] = data.id;
+      body[`${data.content_type}_id`] = data.id;
     }
-    try {
-      return await post("/favorites/", postData, true);
-    } catch {
-      // Already favourited — remove it
-      const delData = { content_type: data.content_type };
-      if (data.content_type !== "transport") delData.id = data.id;
-      return await del("/favorites/", delData, true);
-    }
+    return await post("/favorites/", body, true);
   },
 
   // Visit History
@@ -114,6 +108,17 @@ export const api = {
   adminRefunds: () => get("/admin/refunds/", true),
   adminUpdateRefund: (id, data) => patch(`/admin/refunds/${id}/`, data, true),
   adminUserActivity: (userId) => get(userId ? `/admin/user-activity/?user_id=${userId}` : "/admin/user-activity/", true),
+  adminConfirmBooking: (id, status) => patch(`/admin/bookings/${id}/confirm/`, { status }, true),
+  adminReviews: () => get("/admin/reviews/", true),
+  adminUpdateReview: (id, data) => patch(`/admin/reviews/${id}/`, data, true),
+  adminDeleteReview: (id) => del(`/admin/reviews/${id}/`, null, true),
+  adminFavourites: () => get("/admin/favourites/", true),
+  adminDeleteFavourite: (id) => del(`/admin/favourites/${id}/`, null, true),
+
+  // Notifications
+  notifications: () => get("/notifications/", true),
+  markAllNotificationsRead: () => patch("/notifications/", {}, true),
+  markNotificationRead: (id) => patch(`/notifications/${id}/read/`, {}, true),
 
   // Search
   search: (q) => get(`/search/?q=${encodeURIComponent(q)}`),
@@ -144,4 +149,12 @@ export function clearToken() {
 
 export function hasToken() {
   return !!getAccessToken();
+}
+
+// ── ElevenLabs AI chatbot ──
+export async function getSignedUrl() {
+  const res = await fetch(`${BASE}/elevenlabs/signed-url/`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to get signed URL");
+  return data.signedUrl;
 }

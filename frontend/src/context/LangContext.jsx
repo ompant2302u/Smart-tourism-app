@@ -6,7 +6,7 @@ export const LANGUAGES = [
   { code: "en", label: "English", flag: "🇬🇧" },
   { code: "zh", label: "中文", flag: "🇨🇳" },
   { code: "hi", label: "हिन्दी", flag: "🇮🇳" },
-  { code: "de", label: "Deutsch", flag: "🇩🇪" },
+  { code: "nl", label: "Nederlands", flag: "🇳🇱" },
   { code: "fr", label: "Français", flag: "🇫🇷" },
 ];
 

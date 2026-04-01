@@ -35,7 +35,7 @@ export function useNepalImage(item, entityType) {
       setCredit(_cache[cacheKey].credit);
       return;
     }
-    fetch(`http://127.0.0.1:8000/api/unsplash/?type=${entityType}&name=${encodeURIComponent(name)}`)
+    fetch(`/api/unsplash/?type=${entityType}&name=${encodeURIComponent(name)}`)
       .then((r) => r.json())
       .then((data) => {
         if (data.url) {

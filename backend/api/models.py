@@ -193,7 +193,7 @@ class BookingLog(models.Model):
         ("refunded",  "Refunded"),
     ]
     action      = models.CharField(max_length=30, choices=ACTION_TYPES)
-    status      = models.CharField(max_length=20, choices=STATUS_CHOICES, default="confirmed")
+    status      = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     user        = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="booking_logs")
     email       = models.EmailField(blank=True)
     item_name   = models.CharField(max_length=300, blank=True)
@@ -280,3 +280,29 @@ class VisitHistory(models.Model):
 
     def __str__(self):
         return f"{self.user.username} visited {self.item_name}"
+
+
+class Notification(models.Model):
+    TYPE_CHOICES = [
+        ("booking_pending",   "Booking Pending"),
+        ("booking_confirmed", "Booking Confirmed"),
+        ("booking_cancelled", "Booking Cancelled"),
+        ("booking_refunded",  "Booking Refunded"),
+        ("new_booking",       "New Booking (Admin)"),
+        ("refund_requested",  "Refund Requested (Admin)"),
+        ("general",           "General"),
+    ]
+    user       = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications", null=True, blank=True)
+    is_admin   = models.BooleanField(default=False)  # True = shown to all admins
+    type       = models.CharField(max_length=30, choices=TYPE_CHOICES, default="general")
+    title      = models.CharField(max_length=300)
+    message    = models.TextField()
+    booking    = models.ForeignKey(BookingLog, on_delete=models.CASCADE, null=True, blank=True, related_name="notifications")
+    is_read    = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{'[ADMIN] ' if self.is_admin else ''}{self.title}"

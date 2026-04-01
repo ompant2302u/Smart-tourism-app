@@ -231,7 +231,7 @@ export default function AdminDashboard({ navigate, user }) {
               <div>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24, flexWrap:"wrap", gap:12 }}>
                   <h4 style={{ fontWeight:800, color:"var(--text)", margin:0 }}>Reviews ({reviews.length})</h4>
-                  <a href="http://localhost:8000/admin/api/review/" target="_blank" rel="noopener noreferrer" className="clay-btn clay-btn-sm" style={{ background:"linear-gradient(135deg,#f59e0b,#d97706)", color:"#fff", border:"none", textDecoration:"none" }}>
+                  <a href={`${import.meta.env.VITE_API_URL || "http://localhost:8000"}/admin/api/review/`} target="_blank" rel="noopener noreferrer" className="clay-btn clay-btn-sm" style={{ background:"linear-gradient(135deg,#f59e0b,#d97706)", color:"#fff", border:"none", textDecoration:"none" }}>
                     <i className="fas fa-external-link-alt"></i> Manage in Admin Panel
                   </a>
                 </div>
@@ -261,7 +261,7 @@ export default function AdminDashboard({ navigate, user }) {
               <div>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24, flexWrap:"wrap", gap:12 }}>
                   <h4 style={{ fontWeight:800, color:"var(--text)", margin:0 }}>Favourites ({favs.length})</h4>
-                  <a href="http://localhost:8000/admin/api/favorite/" target="_blank" rel="noopener noreferrer" className="clay-btn clay-btn-sm" style={{ background:"linear-gradient(135deg,#ec4899,#be185d)", color:"#fff", border:"none", textDecoration:"none" }}>
+                  <a href={`${import.meta.env.VITE_API_URL || "http://localhost:8000"}/admin/api/favorite/`} target="_blank" rel="noopener noreferrer" className="clay-btn clay-btn-sm" style={{ background:"linear-gradient(135deg,#ec4899,#be185d)", color:"#fff", border:"none", textDecoration:"none" }}>
                     <i className="fas fa-external-link-alt"></i> Manage in Admin Panel
                   </a>
                 </div>
@@ -289,7 +289,7 @@ export default function AdminDashboard({ navigate, user }) {
               <div>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24, flexWrap:"wrap", gap:12 }}>
                   <h4 style={{ fontWeight:800, color:"var(--text)", margin:0 }}>Newsletter Subscribers ({subscribers.length})</h4>
-                  <a href="http://localhost:8000/admin/api/newslettersubscriber/" target="_blank" rel="noopener noreferrer" className="clay-btn clay-btn-sm" style={{ background:"linear-gradient(135deg,#3b82f6,#1d4ed8)", color:"#fff", border:"none", textDecoration:"none" }}>
+                  <a href={`${import.meta.env.VITE_API_URL || "http://localhost:8000"}/admin/api/newslettersubscriber/`} target="_blank" rel="noopener noreferrer" className="clay-btn clay-btn-sm" style={{ background:"linear-gradient(135deg,#3b82f6,#1d4ed8)", color:"#fff", border:"none", textDecoration:"none" }}>
                     <i className="fas fa-external-link-alt"></i> Manage in Admin Panel
                   </a>
                 </div>

@@ -8,7 +8,7 @@ Write-Host "========================================" -ForegroundColor Cyan
 # Backend
 Write-Host "`n[Backend] Installing dependencies..." -ForegroundColor Yellow
 Set-Location "$root\backend"
-pip install djangorestframework django-cors-headers djangorestframework-simplejwt whitenoise --quiet
+pip install django djangorestframework django-cors-headers djangorestframework-simplejwt whitenoise --quiet
 python manage.py migrate 2>$null
 python manage.py collectstatic --noinput 2>$null
 
