@@ -10,12 +10,11 @@ services:
     name: nepalwander-api
     runtime: python
     rootDir: backend
-    buildCommand: pip install -r requirements.txt && python manage.py migrate && python manage.py collectstatic --noinput
-    startCommand: gunicorn tourtech_backend.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    startCommand: python manage.py migrate --noinput && gunicorn tourtech_backend.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    healthCheckPath: /
     plan: free
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.0
       - key: DEBUG
         value: false
       - key: SECRET_KEY
@@ -26,9 +25,7 @@ services:
         fromDatabase:
           name: nepalwander-db
           property: connectionString
-      - key: CORS_ALLOWED_ORIGINS
-        value: https://nepalwander-frontend.onrender.com
-      # Set these manually in Render dashboard after deploy:
+      # Set these manually in Render dashboard after first deploy:
       # ELEVENLABS_API_KEY
       # AGENT_ID
       # UNSPLASH_ACCESS_KEY
@@ -47,6 +44,9 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        value: https://nepalwander-api.onrender.com
+        fromService:
+          name: nepalwander-api
+          type: web
+          property: url
       - key: VITE_ELEVENLABS_AGENT_ID
         value: agent_4901kmv3tab6ep6rdxhz84fcywk5
