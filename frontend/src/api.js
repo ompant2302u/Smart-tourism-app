@@ -1,7 +1,7 @@
 // In production (Render), fall back to the known backend URL if env var isn't injected
 const _apiBase = import.meta.env.VITE_API_URL
   || (typeof window !== "undefined" && window.location.hostname !== "localhost"
-      ? "https://nepalwander-api.onrender.com"
+      ? "https://smart-tourism-app-n7be.onrender.com"
       : "");
 const BASE = _apiBase + "/api";
 
