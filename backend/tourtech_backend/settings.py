@@ -121,4 +121,9 @@ CORS_ALLOWED_ORIGINS = [
         "http://localhost:5173,http://localhost:3000"
     ).split(",") if o
 ]
+# Allow any *.onrender.com subdomain and localhost (covers all Render preview URLs)
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://[\w-]+\.onrender\.com$",
+    r"^http://localhost:\d+$",
+]
 CORS_ALLOW_CREDENTIALS = True

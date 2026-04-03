@@ -27,7 +27,7 @@ async function refreshAccessToken() {
   return null;
 }
 
-async function fetchWithTimeout(url, options = {}, timeoutMs = 20000) {
+async function fetchWithTimeout(url, options = {}, timeoutMs = 12000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -36,6 +36,9 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 20000) {
     clearTimeout(id);
   }
 }
+
+// Retry delays for Render free-tier cold starts (can take up to 50s)
+const RETRY_DELAYS = [5000, 10000, 15000, 20000];
 
 async function request(url, options = {}, auth = false, retry = true, attempt = 0) {
   try {
@@ -49,13 +52,20 @@ async function request(url, options = {}, auth = false, retry = true, attempt = 
     if (!res.ok) throw data;
     return data;
   } catch (err) {
-    // Retry once on network errors (covers Render free-tier cold start)
-    if ((err instanceof TypeError || err.name === "AbortError") && attempt === 0) {
-      await new Promise(r => setTimeout(r, 4000));
-      return request(url, options, auth, retry, 1);
+    // Retry on network errors — covers Render free-tier cold start (up to ~62s total)
+    if ((err instanceof TypeError || err.name === "AbortError") && attempt < RETRY_DELAYS.length) {
+      await new Promise(r => setTimeout(r, RETRY_DELAYS[attempt]));
+      return request(url, options, auth, retry, attempt + 1);
     }
     throw err;
   }
+}
+
+// Exported so App can warm up the backend on page load
+export async function pingBackend() {
+  const base = import.meta.env.VITE_API_URL || "";
+  if (!base) return;
+  try { await fetchWithTimeout(`${base}/`, {}, 30000); } catch { /* silent */ }
 }
 
 const get  = (url, auth = false) => request(url, { method: "GET" }, auth);

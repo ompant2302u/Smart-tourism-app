@@ -6,7 +6,7 @@ import TourismVoiceAssistant from "./components/TourismVoiceAssistant";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import PageLoader from "./components/PageLoader";
-import { api, clearToken } from "./api";
+import { api, clearToken, pingBackend } from "./api";
 import AIItineraryPage from "./pages/AIItineraryPage";
 import InteractiveMapPage from "./pages/InteractiveMapPage";
 
@@ -48,6 +48,9 @@ function AppInner() {
     const t = setTimeout(() => setLoading(false), 900);
     return () => clearTimeout(t);
   }, []);
+
+  // Wake up the Render free-tier backend as soon as the page loads
+  useEffect(() => { pingBackend(); }, []);
 
   useEffect(() => {
     const boot = async () => {

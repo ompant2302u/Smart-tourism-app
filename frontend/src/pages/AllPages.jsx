@@ -880,7 +880,7 @@ export function LoginPage({ navigate, setUser }) {
       }
     } catch (err) {
       if (err instanceof TypeError) {
-        setError("Unable to reach the server. It may be starting up — please try again in a moment.");
+        setError("Server is starting up (this can take ~30s on free hosting). Please wait a moment and try again.");
       } else {
         const msg = typeof err === "object" && err !== null
           ? (err.detail || Object.values(err).flat().join(" "))
@@ -979,7 +979,7 @@ export function RegisterPage({ navigate }) {
       }
     } catch (err) {
       if (err instanceof TypeError || (typeof err === "string" && err.includes("fetch"))) {
-        setError("Unable to reach the server. It may be starting up — please try again in a moment.");
+        setError("Server is starting up (this can take ~30s on free hosting). Please wait a moment and try again.");
       } else {
         setError(formatError(err));
       }
