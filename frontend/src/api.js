@@ -1,4 +1,9 @@
-const BASE = (import.meta.env.VITE_API_URL || "") + "/api";
+// In production (Render), fall back to the known backend URL if env var isn't injected
+const _apiBase = import.meta.env.VITE_API_URL
+  || (typeof window !== "undefined" && window.location.hostname !== "localhost"
+      ? "https://nepalwander-api.onrender.com"
+      : "");
+const BASE = _apiBase + "/api";
 
 const getAccessToken = () => localStorage.getItem("nw-token");
 const getRefreshToken = () => localStorage.getItem("nw-refresh");
@@ -63,9 +68,8 @@ async function request(url, options = {}, auth = false, retry = true, attempt = 
 
 // Exported so App can warm up the backend on page load
 export async function pingBackend() {
-  const base = import.meta.env.VITE_API_URL || "";
-  if (!base) return;
-  try { await fetchWithTimeout(`${base}/`, {}, 30000); } catch { /* silent */ }
+  if (!_apiBase) return;
+  try { await fetchWithTimeout(`${_apiBase}/`, {}, 30000); } catch { /* silent */ }
 }
 
 const get  = (url, auth = false) => request(url, { method: "GET" }, auth);
