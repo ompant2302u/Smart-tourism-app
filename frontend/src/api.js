@@ -27,16 +27,35 @@ async function refreshAccessToken() {
   return null;
 }
 
-async function request(url, options = {}, auth = false, retry = true) {
-  const res = await fetch(`${BASE}${url}`, { ...options, headers: headers(auth) });
-  if (res.status === 401 && auth && retry && getRefreshToken()) {
-    const newAccess = await refreshAccessToken();
-    if (newAccess) return request(url, options, auth, false);
+async function fetchWithTimeout(url, options = {}, timeoutMs = 20000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(id);
   }
-  const contentType = res.headers.get("content-type") || "";
-  const data = contentType.includes("application/json") ? await res.json() : await res.text();
-  if (!res.ok) throw data;
-  return data;
+}
+
+async function request(url, options = {}, auth = false, retry = true, attempt = 0) {
+  try {
+    const res = await fetchWithTimeout(`${BASE}${url}`, { ...options, headers: headers(auth) });
+    if (res.status === 401 && auth && retry && getRefreshToken()) {
+      const newAccess = await refreshAccessToken();
+      if (newAccess) return request(url, options, auth, false);
+    }
+    const contentType = res.headers.get("content-type") || "";
+    const data = contentType.includes("application/json") ? await res.json() : await res.text();
+    if (!res.ok) throw data;
+    return data;
+  } catch (err) {
+    // Retry once on network errors (covers Render free-tier cold start)
+    if ((err instanceof TypeError || err.name === "AbortError") && attempt === 0) {
+      await new Promise(r => setTimeout(r, 4000));
+      return request(url, options, auth, retry, 1);
+    }
+    throw err;
+  }
 }
 
 const get  = (url, auth = false) => request(url, { method: "GET" }, auth);

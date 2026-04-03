@@ -153,7 +153,7 @@ function AssistantInner({ navigate, open, setOpen }) {
       setMessages(p => [...p, { role: "ai", text: reply }]);
       if (action?.type === "navigate") setTimeout(() => navigate(action.page, action.params || {}), 500);
     } catch {
-      setMessages(p => [...p, { role: "ai", text: "Server unavailable. Make sure the backend is running." }]);
+      setMessages(p => [...p, { role: "ai", text: "Server is unavailable or still starting up. Please try again in a moment." }]);
     } finally {
       setIsTyping(false);
     }

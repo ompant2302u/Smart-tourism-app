@@ -880,7 +880,7 @@ export function LoginPage({ navigate, setUser }) {
       }
     } catch (err) {
       if (err instanceof TypeError) {
-        setError("Cannot connect to server. Make sure the backend is running on port 8000.");
+        setError("Unable to reach the server. It may be starting up — please try again in a moment.");
       } else {
         const msg = typeof err === "object" && err !== null
           ? (err.detail || Object.values(err).flat().join(" "))
@@ -979,7 +979,7 @@ export function RegisterPage({ navigate }) {
       }
     } catch (err) {
       if (err instanceof TypeError || (typeof err === "string" && err.includes("fetch"))) {
-        setError("Cannot connect to server. Make sure the backend is running on port 8000.");
+        setError("Unable to reach the server. It may be starting up — please try again in a moment.");
       } else {
         setError(formatError(err));
       }
