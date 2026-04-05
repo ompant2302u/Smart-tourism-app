@@ -297,10 +297,10 @@ export default function Navbar({ navigate, page, user, setUser, theme, setTheme 
             </div>
           ) : (
             <>
-              <button className="btn btn-ghost btn-sm" style={{ color: isSolid ? "var(--text)" : "rgba(255,255,255,0.9)", border: "1px solid", borderColor: isSolid ? "var(--card-border)" : "rgba(255,255,255,0.3)" }} onClick={() => goTo("login")}>
+              <button className="btn btn-ghost btn-sm nav-desktop-only" style={{ color: isSolid ? "var(--text)" : "rgba(255,255,255,0.9)", border: "1px solid", borderColor: isSolid ? "var(--card-border)" : "rgba(255,255,255,0.3)" }} onClick={() => goTo("login")}>
                 {t("sign_in")}
               </button>
-              <button className="btn btn-accent btn-sm" onClick={() => goTo("register")}>
+              <button className="btn btn-accent btn-sm nav-desktop-only" onClick={() => goTo("register")}>
                 {t("join_free")}
               </button>
             </>

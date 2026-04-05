@@ -220,7 +220,10 @@ export default function ProfilePage({ navigate, user, setUser, pageParams }) {
   const handleRemoveFav = async (fav) => {
     const ct = fav.content_type;
     const id = fav.destination?.id || fav.hotel?.id || fav.guide?.id;
-    await api.removeFavorite({ content_type: ct, id }).catch(() => {});
+    // Build the correct body: backend DELETE expects {content_type, destination_id|hotel_id|guide_id}
+    const body = { content_type: ct };
+    if (ct !== "transport" && id) body[`${ct}_id`] = id;
+    await api.removeFavorite(body).catch(() => {});
     setFavs(f => f.filter(x => x.id !== fav.id));
     showToast("✓ Removed from favourites");
   };

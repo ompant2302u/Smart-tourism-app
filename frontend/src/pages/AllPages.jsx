@@ -5,7 +5,7 @@ import { api, saveToken, clearToken } from "../api";
 import { useLang } from "../context/LangContext";
 
 /* ═══ SEARCH ═══ */
-export function SearchPage({ navigate, pageParams }) {
+export function SearchPage({ navigate, pageParams, user }) {
   const { t } = useLang();
   const [query, setQuery] = useState(pageParams?.q || "");
   const [filter, setFilter] = useState("all");
@@ -161,7 +161,7 @@ export function SearchPage({ navigate, pageParams }) {
 
                     <div className="grid-3">
                       {results.destinations.map((d, i) => (
-                        <DestinationCard key={d.id} dest={d} navigate={navigate} delay={i * 0.04} />
+                        <DestinationCard key={d.id} dest={d} navigate={navigate} delay={i * 0.04} user={user} />
                       ))}
                     </div>
                   </div>
@@ -194,7 +194,7 @@ export function SearchPage({ navigate, pageParams }) {
 
                     <div className="grid-3">
                       {results.hotels.map((h, i) => (
-                        <HotelCard key={h.id} hotel={h} navigate={navigate} delay={i * 0.04} />
+                        <HotelCard key={h.id} hotel={h} navigate={navigate} delay={i * 0.04} user={user} />
                       ))}
                     </div>
                   </div>
@@ -227,7 +227,7 @@ export function SearchPage({ navigate, pageParams }) {
 
                     <div className="grid-4">
                       {results.guides.map((g, i) => (
-                        <GuideCard key={g.id} guide={g} navigate={navigate} delay={i * 0.05} />
+                        <GuideCard key={g.id} guide={g} navigate={navigate} delay={i * 0.05} user={user} />
                       ))}
                     </div>
                   </div>

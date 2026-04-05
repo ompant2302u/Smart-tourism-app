@@ -91,6 +91,22 @@ export function DestinationCard({ dest, onClick, navigate, delay = 0, user }) {
             </span>
           </div>
         )}
+        <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+          <button
+            className="btn btn-primary btn-sm"
+            style={{ flex: 1, fontSize: "0.78rem" }}
+            onClick={(e) => { e.stopPropagation(); handleClick(); }}
+          >
+            {t("view")} <i className="fas fa-arrow-right" style={{ fontSize: "0.7rem" }} />
+          </button>
+          <button
+            className="btn btn-accent btn-sm"
+            style={{ flex: 1, fontSize: "0.78rem" }}
+            onClick={(e) => { e.stopPropagation(); if (navigate) navigate("destination-detail", { id: dest.id }); }}
+          >
+            🎫 Book
+          </button>
+        </div>
       </div>
     </div>
   );

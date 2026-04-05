@@ -4,6 +4,7 @@ import { DestinationCard, ReviewItem, ReviewForm, MapEmbed } from "../components
 import { api } from "../api";
 import { useLang } from "../context/LangContext";
 import NepalImage from "../components/common/NepalImage";
+import { BookingModal } from "../components/BookingModal";
 
 const API_BASE = import.meta.env.VITE_API_URL
   || (typeof window !== "undefined" && window.location.hostname !== "localhost"
@@ -133,6 +134,8 @@ export function DestinationDetailPage({ navigate, pageParams, user }) {
 
   const [reviews, setReviews] = useState([]);
   const [saved, setSaved] = useState(false);
+  const [showBooking, setShowBooking] = useState(false);
+  const [bookingDone, setBookingDone] = useState(null);
 
   useEffect(() => {
     // Try to load from backend by slug
@@ -181,6 +184,19 @@ export function DestinationDetailPage({ navigate, pageParams, user }) {
 
   return (
     <div>
+      {showBooking && (
+        <BookingModal
+          config={{ type: "destination", item: dest, action: "save_dest" }}
+          user={user}
+          onClose={() => setShowBooking(false)}
+          onSuccess={(p) => { setShowBooking(false); setBookingDone(p); setTimeout(() => setBookingDone(null), 5000); }}
+        />
+      )}
+      {bookingDone && (
+        <div style={{ position:"fixed", top:80, left:"50%", transform:"translateX(-50%)", zIndex:9998, background:"linear-gradient(135deg,#059669,#047857)", color:"#fff", padding:"14px 28px", borderRadius:16, fontWeight:700, boxShadow:"0 8px 24px rgba(0,0,0,0.3)", whiteSpace:"nowrap" }}>
+          🎉 Booking confirmed! Check your profile for details.
+        </div>
+      )}
       <div className="detail-hero">
         <NepalImage item={dest} entityType="destination" style={{ width: "100%", height: "100%" }} showCredit={true} />
 
@@ -223,7 +239,7 @@ export function DestinationDetailPage({ navigate, pageParams, user }) {
                 </p>
               </div>
 
-              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
                 <span
                   style={{
                     background: "rgba(255,209,102,0.9)",
@@ -243,6 +259,13 @@ export function DestinationDetailPage({ navigate, pageParams, user }) {
                   onClick={handleSave}
                 >
                   {saved ? "❤️" : "🤍"} {saved ? `${t("save_favorite")} ✓` : t("save_favorite")}
+                </button>
+
+                <button
+                  className="clay-btn clay-btn-red"
+                  onClick={() => { if (!user) { navigate("login"); return; } setShowBooking(true); }}
+                >
+                  🎫 Book Now
                 </button>
               </div>
             </div>
@@ -372,6 +395,25 @@ export function DestinationDetailPage({ navigate, pageParams, user }) {
           </div>
 
           <div>
+            {/* Book This Destination */}
+            <div className="clay-card mb-24" style={{ padding: 24, background: "linear-gradient(135deg,rgba(193,18,31,0.06),rgba(230,57,70,0.04))", border: "2px solid rgba(193,18,31,0.15)" }}>
+              <h6 style={{ fontWeight: 800, marginBottom: 8, color: "var(--text)" }}>🎫 Book This Destination</h6>
+              <p style={{ fontSize: "0.82rem", color: "var(--text3)", fontWeight: 600, marginBottom: 16 }}>
+                Reserve your spot and get a confirmed booking with payment receipt.
+              </p>
+              {dest.entry_fee > 0 && (
+                <div style={{ fontWeight: 900, color: "var(--clay-red)", fontSize: "1.1rem", marginBottom: 12 }}>
+                  Entry: {dest.currency || "USD"} {dest.entry_fee}
+                </div>
+              )}
+              <button
+                className="clay-btn clay-btn-red clay-btn-full"
+                onClick={() => { if (!user) { navigate("login"); return; } setShowBooking(true); }}
+              >
+                🎫 {user ? "Book Now" : "Login to Book"}
+              </button>
+            </div>
+
             {nearbyHotels.length > 0 && (
               <div className="clay-card mb-24" style={{ padding: 24 }}>
                 <h6 style={{ fontWeight: 800, marginBottom: 16, color: "var(--text)" }}>🏨 {t("hotels_here")}</h6>

@@ -71,6 +71,8 @@ export function BookingModal({ config, user, onClose, onSuccess }) {
     ? nights * (item.price_per_night || 0) * form.rooms
     : type === "guide"
     ? form.days * (item.price_per_day || 0)
+    : type === "destination"
+    ? (item.entry_fee || 0)
     : parseFloat((item.price || "0").replace(/[^0-9.]/g,"").split("–")[0]) || 50;
 
   const handleSubmit = async (e) => {
@@ -105,6 +107,8 @@ export function BookingModal({ config, user, onClose, onSuccess }) {
         api.addVisit({ content_type:"hotel", hotel_id: item.id, item_name: item.name }).catch(()=>{});
       } else if (type === "guide" && item.id) {
         api.addVisit({ content_type:"guide", guide_id: item.id, item_name: item.name }).catch(()=>{});
+      } else if (type === "destination" && item.id) {
+        api.addVisit({ content_type:"destination", destination_id: item.id, item_name: item.name }).catch(()=>{});
       } else if (type === "transport") {
         api.addVisit({ content_type:"transport", item_name: item.name || item.name_key || "Transport" }).catch(()=>{});
       }
@@ -134,7 +138,7 @@ export function BookingModal({ config, user, onClose, onSuccess }) {
         </div>
 
         <h4 style={{ fontWeight:900,color:"var(--text)",marginBottom:4 }}>
-          {type==="hotel"?"🏨 Book Hotel":type==="guide"?"👤 Book Guide":"🚌 Book Transport"}
+          {type==="hotel"?"🏨 Book Hotel":type==="guide"?"👤 Book Guide":type==="destination"?"🎫 Book Destination":"🚌 Book Transport"}
         </h4>
         <p style={{ color:"var(--text3)",fontWeight:600,marginBottom:20,fontSize:"0.9rem" }}>
           {item.name || item.name_key}
@@ -173,6 +177,13 @@ export function BookingModal({ config, user, onClose, onSuccess }) {
               {type === "guide" && (
                 <div><label className="form-lbl">Number of Days</label>
                   <input className="clay-input" type="number" min={1} value={form.days} onChange={e=>setForm({...form,days:+e.target.value})} /></div>
+              )}
+
+              {type === "destination" && item?.entry_fee > 0 && (
+                <div style={{ padding:14,background:"rgba(67,97,238,0.06)",border:"var(--clay-border)",borderRadius:14,marginBottom:14 }}>
+                  <div style={{ fontWeight:800,color:"var(--text)",marginBottom:4 }}>Entry Fee</div>
+                  <div style={{ color:"var(--clay-red)",fontSize:"1.05rem",fontWeight:900 }}>{fmt(item.entry_fee,curr)} per person</div>
+                </div>
               )}
 
               <label className="form-lbl">Special Requests</label>

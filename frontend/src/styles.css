@@ -2747,3 +2747,232 @@ img { max-width: 100%; height: auto; }
 /* ── Prevent horizontal overflow globally ── */
 body { overflow-x: hidden; }
 .container { overflow-x: hidden; }
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE OVERFLOW & ICON FIX — v2
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Prevent ALL horizontal overflow */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { overflow-x: hidden; max-width: 100vw; }
+
+/* ── Navbar: hide overflow items on small screens ── */
+@media(max-width:768px) {
+  /* Hide desktop nav links (hamburger handles them) */
+  .nav-links { display: none !important; }
+  .hamburger-btn { display: flex !important; }
+
+  /* Shrink nav actions so they don't overflow */
+  .nav-actions { gap: 4px; flex-shrink: 1; min-width: 0; }
+
+  /* Hide language label text, keep flag */
+  .lang-code-label { display: none !important; }
+  .lang-btn { padding: 6px 8px; gap: 4px; font-size: 0.78rem; }
+
+  /* Shrink user button */
+  .user-btn { padding: 6px 8px; gap: 5px; font-size: 0.8rem; }
+  /* Hide username text, keep avatar */
+  .user-btn > span:not(.user-avatar):not([class]) { display: none; }
+  .user-btn > i { display: none; }
+
+  /* Hide sign-in/join buttons on very small screens */
+  .nav-actions > .btn { display: none; }
+
+  /* Keep icon buttons compact */
+  .nav-icon-btn { width: 32px; height: 32px; font-size: 0.82rem; }
+
+  /* Nav brand smaller */
+  .nav-brand { font-size: 1rem; }
+  .nav-brand-icon { width: 32px; height: 32px; font-size: 1rem; }
+
+  /* Nav inner padding */
+  .nav-inner { padding: 0 12px; gap: 4px; }
+}
+
+@media(max-width:480px) {
+  /* On very small screens, hide notification bell too if needed */
+  .nav-actions { gap: 2px; }
+  .nav-icon-btn { width: 30px; height: 30px; font-size: 0.78rem; }
+  .lang-btn { padding: 5px 6px; }
+}
+
+/* ── Mobile menu: show sign-in buttons inside mobile menu ── */
+@media(max-width:768px) {
+  .mobile-menu { display: block; }
+}
+
+/* ── All inline grids collapse on mobile ── */
+@media(max-width:768px) {
+  /* Any grid with fixed column widths */
+  [style*="grid-template-columns: 280px"],
+  [style*="gridTemplateColumns: \"280px"],
+  [style*="grid-template-columns: 1fr 360px"],
+  [style*="grid-template-columns: 1fr 320px"],
+  [style*="grid-template-columns: 1fr 1.5fr"],
+  [style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Hero section mobile ── */
+@media(max-width:640px) {
+  .hero-content { padding: 100px 0 60px; }
+  .hero-title { font-size: clamp(2rem, 8vw, 3rem) !important; }
+  .hero-desc { font-size: 0.95rem; max-width: 100%; }
+  .hero-stats { gap: 16px; margin-top: 32px; }
+  .hero-stat-num { font-size: 1.6rem; }
+  .hero-stat-label { font-size: 0.68rem; }
+  .hero-actions { gap: 8px; }
+  .hero-actions .btn { flex: 1; min-width: 0; font-size: 0.82rem; padding: 10px 14px; }
+}
+
+/* ── Cards: prevent overflow ── */
+.dest-card, .hotel-card, .guide-card {
+  min-width: 0;
+  word-break: break-word;
+}
+
+/* ── Detail hero mobile ── */
+@media(max-width:640px) {
+  .detail-hero { height: 280px !important; min-height: 280px; }
+  .detail-hero-content { padding: 16px !important; }
+  .detail-hero-content h1 { font-size: 1.4rem !important; line-height: 1.2; }
+  .detail-hero-content p { font-size: 0.82rem; }
+}
+
+/* ── Booking modal mobile ── */
+@media(max-width:640px) {
+  /* BookingModal container */
+  div[style*="maxWidth: 500"] {
+    padding: 20px 16px !important;
+    border-radius: 20px !important;
+  }
+  /* Payment method grid */
+  div[style*="gridTemplateColumns: \"1fr 1fr\""][style*="gap: 10"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  /* Form grids inside modal */
+  div[style*="gridTemplateColumns: \"1fr 1fr\""][style*="gap: 12"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Profile page mobile ── */
+@media(max-width:640px) {
+  .profile-header { padding-top: 80px; }
+  /* Profile header flex row */
+  .profile-header .container > div:first-child {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  .profile-stats-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  .profile-stat-pill { min-width: 0 !important; }
+  /* Tabs scroll */
+  .profile-tabs {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap !important;
+    scrollbar-width: none;
+  }
+  .profile-tabs::-webkit-scrollbar { display: none; }
+  .profile-tab-btn span { display: none; }
+  .profile-tab-btn { padding: 10px 12px; flex-shrink: 0; }
+}
+
+/* ── Contact / About page mobile ── */
+@media(max-width:768px) {
+  /* Contact grid */
+  div[style*="1fr 1.5fr"] { grid-template-columns: 1fr !important; }
+  /* About mission grid */
+  div[style*="1fr 1fr"][style*="gap: 48"] { grid-template-columns: 1fr !important; }
+  div[style*="1fr 1fr"][style*="gap:48"] { grid-template-columns: 1fr !important; }
+}
+
+/* ── Safety page emergency contacts ── */
+@media(max-width:640px) {
+  div[style*="minmax(240px"] { grid-template-columns: 1fr 1fr !important; }
+}
+@media(max-width:400px) {
+  div[style*="minmax(240px"] { grid-template-columns: 1fr !important; }
+}
+
+/* ── Quick info grid in destination detail ── */
+@media(max-width:480px) {
+  div[style*="gridTemplateColumns: \"1fr 1fr\""][style*="gap: 12"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Footer mobile ── */
+@media(max-width:768px) {
+  .footer-grid { grid-template-columns: 1fr 1fr !important; }
+}
+@media(max-width:480px) {
+  .footer-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ── Search hero ── */
+@media(max-width:640px) {
+  .search-hero { padding: 48px 0 36px; }
+  .search-hero h1 { font-size: 1.8rem !important; }
+}
+
+/* ── Filter chips row ── */
+.filter-chips-row,
+div[style*="display: flex"][style*="gap: 12"][style*="flexWrap: \"wrap\""] {
+  flex-wrap: wrap;
+}
+
+/* ── Prevent text overflow in cards ── */
+.dest-card-title, .hotel-card-title, .guide-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Clay card padding on mobile ── */
+@media(max-width:480px) {
+  .clay-card[style*="padding: 32"] { padding: 18px !important; }
+  .clay-card[style*="padding: 40"] { padding: 20px !important; }
+  .clay-card[style*="padding: 48"] { padding: 24px !important; }
+}
+
+/* ── Section container padding ── */
+@media(max-width:480px) {
+  .container { padding: 0 14px; }
+  .section { padding: 48px 0; }
+}
+
+/* ── Breadcrumb ── */
+.breadcrumb { flex-wrap: wrap; gap: 4px; }
+.breadcrumb-item { white-space: nowrap; }
+
+/* ── Destination detail hero buttons ── */
+@media(max-width:640px) {
+  .detail-hero-content div[style*="display: \"flex\""],
+  .detail-hero-content div[style*="display: flex"] {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+}
+
+/* ── AI assistant panel ── */
+@media(max-width:480px) {
+  /* Panel itself */
+  div[style*="width:370px"],
+  div[style*="width: 370px"] {
+    width: calc(100vw - 16px) !important;
+    right: 8px !important;
+    bottom: 10px !important;
+  }
+}
+
+/* ── nav-desktop-only: hide on mobile ── */
+@media(max-width:768px) {
+  .nav-desktop-only { display: none !important; }
+}
