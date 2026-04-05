@@ -17,7 +17,7 @@ export default function NepalImage({ item, entityType, className = "", style = {
       />
       {showCredit && credit && (
         <a
-          href={`${credit.link}?utm_source=nepalwander&utm_medium=referral`}
+          href={`${credit.link}?utm_source=tourtech&utm_medium=referral`}
           target="_blank"
           rel="noopener noreferrer"
           style={{

@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   NEPALWANDER — MODERN GLASSMORPHISM DESIGN SYSTEM v3.0
+   TOUR TECH — MODERN GLASSMORPHISM DESIGN SYSTEM v3.0
    Nepal-inspired: Mountain Blues · Forest Greens · Sunset Orange
    Fonts: Poppins (headings) · Inter (body)
    ═══════════════════════════════════════════════════════════════ */
@@ -839,7 +839,7 @@ select.input { cursor: pointer; }
 .star-empty   { color:var(--text4); }
 
 /* ══════════════════════════════════════════════════════════════
-   NEPALWANDER — COMPATIBILITY & COMPLETION LAYER v3.1
+   TOUR TECH — COMPATIBILITY & COMPLETION LAYER v3.1
    All missing classes from existing pages
    ══════════════════════════════════════════════════════════════ */
 
@@ -968,9 +968,17 @@ select.input { cursor: pointer; }
   font-weight: 600;
   margin-bottom: 4px;
   transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+/* Select: keep native dropdown but style it */
+.clay-select {
   -webkit-appearance: none;
   appearance: none;
-  outline: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238aa0bc' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+  cursor: pointer;
 }
 .clay-select:focus, .clay-input:focus {
   border-color: var(--primary);
@@ -1213,7 +1221,7 @@ textarea.clay-input { resize: vertical; }
 
 
 /* ══════════════════════════════════════════════════════════════
-   NEPALWANDER — MISSING CLASSES COMPLETION LAYER v3.2
+   TOUR TECH — MISSING CLASSES COMPLETION LAYER v3.2
    ══════════════════════════════════════════════════════════════ */
 
 /* ── CSS VARIABLE ALIASES (clay design system) ── */
@@ -1245,7 +1253,7 @@ textarea.clay-input { resize: vertical; }
   box-shadow: var(--clay-shadow);
   transition: transform var(--transition), box-shadow var(--transition);
   position: relative;
-  overflow: hidden;
+  /* overflow: hidden removed — clips dropdowns/selects inside cards */
 }
 .clay-card:hover { box-shadow: var(--clay-shadow-lg); }
 [data-theme="dark"] .clay-card {
@@ -1627,7 +1635,7 @@ textarea.clay-input { resize: vertical; }
 }
 
 /* ══════════════════════════════════════════════════════════════
-   NEPALWANDER — PROFILE & MODAL CLASSES v3.3
+   TOUR TECH — PROFILE & MODAL CLASSES v3.3
    ══════════════════════════════════════════════════════════════ */
 
 /* ── MODAL BACKDROP & BOX ── */
@@ -2312,7 +2320,7 @@ textarea.clay-input { resize: vertical; }
 }
 
 /* ══════════════════════════════════════════════════════════════
-   NEPALWANDER — VISUAL POLISH v4.0
+   TOUR TECH — VISUAL POLISH v4.0
    Richer colors · Reduced animations · Tighter typography
    ══════════════════════════════════════════════════════════════ */
 
@@ -2995,7 +3003,7 @@ div[style*="display: flex"][style*="gap: 12"][style*="flexWrap: \"wrap\""] {
 .nav-inner {
   height: 100%; width: 100%; padding: 0 24px;
   display: flex; align-items: center; gap: 8px;
-  overflow: hidden; /* prevent any child from causing horizontal scroll */
+  /* overflow: hidden removed — it clips dropdowns */
 }
 
 /* Brand */

@@ -49,17 +49,6 @@ export default function Navbar({ navigate, page, user, setUser, theme, setTheme 
   }, []);
 
   useEffect(() => {
-    const close = (e) => {
-      if (!searchWrap.current?.contains(e.target)) closeSearch();
-      if (!langWrap.current?.contains(e.target))   setLangDrop(false);
-      if (!userWrap.current?.contains(e.target))   setUserDrop(false);
-      if (!notifWrap.current?.contains(e.target))  setNotifOpen(false);
-    };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, []);
-
-  useEffect(() => {
     if (!user) return;
     const load = () => api.notifications().then(d => setNotifs(Array.isArray(d) ? d : [])).catch(() => {});
     load();
@@ -81,6 +70,19 @@ export default function Navbar({ navigate, page, user, setUser, theme, setTheme 
 
   const closeSearch = () => { setSearchOpen(false); setSuggests([]); setSearchQ(""); setActiveIdx(-1); };
   const openSearch  = () => { setSearchOpen(true); requestAnimationFrame(() => inputRef.current?.focus()); };
+
+  useEffect(() => {
+    const close = (e) => {
+      // Only close if click is truly outside the ref element
+      if (searchWrap.current && !searchWrap.current.contains(e.target)) closeSearch();
+      if (langWrap.current   && !langWrap.current.contains(e.target))   setLangDrop(false);
+      if (userWrap.current   && !userWrap.current.contains(e.target))   setUserDrop(false);
+      if (notifWrap.current  && !notifWrap.current.contains(e.target))  setNotifOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleInput = (val) => {
     setSearchQ(val); setActiveIdx(-1);
@@ -114,7 +116,7 @@ export default function Navbar({ navigate, page, user, setUser, theme, setTheme 
         {/* Brand */}
         <div className="nav-brand" onClick={() => goTo("home")}>
           <div className="nav-brand-icon">🏔️</div>
-          <span className="nav-brand-text">NepalWander</span>
+          <span className="nav-brand-text">Tour Tech</span>
         </div>
 
         {/* Desktop Links */}

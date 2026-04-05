@@ -27,7 +27,7 @@ export default function Footer({ navigate }) {
               <div style={{ width: 40, height: 40, borderRadius: 12, background: "linear-gradient(135deg,var(--mountain-500),var(--forest-600))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem" }}>
                 🏔️
               </div>
-              <span className="footer-brand">NepalWander</span>
+              <span className="footer-brand">Tour Tech</span>
             </div>
             <p className="footer-desc">{t("footer_desc")}</p>
             <div className="footer-social">
@@ -51,7 +51,7 @@ export default function Footer({ navigate }) {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, color: "rgba(255,255,255,0.5)", fontSize: "0.82rem" }}>
                 <i className="fas fa-envelope" style={{ color: "var(--mountain-300)", width: 14 }} />
-                info@nepalwander.com
+                info@tourtech.np
               </div>
             </div>
           </div>

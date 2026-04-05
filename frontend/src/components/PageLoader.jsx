@@ -13,7 +13,7 @@ export default function PageLoader() {
       <div style={{ textAlign: "center" }}>
         <div style={{ fontSize: "3.5rem", marginBottom: 8, animation: "float 1.2s ease-in-out infinite" }}>🏔️</div>
         <div className="loader-logo" style={{ justifyContent: "center", marginBottom: 24 }}>
-          NepalWander
+          Tour Tech
         </div>
       </div>
       <div className="loader-spinner" />

@@ -780,7 +780,7 @@ function printTicket(p, curr) {
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Booking Confirmation – ${b?.item_name || "NepalWander"}</title>
+  <title>Booking Confirmation – ${b?.item_name || "Tour Tech"}</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
     body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f3f4f6;color:#111827;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
@@ -805,7 +805,7 @@ function printTicket(p, curr) {
         <div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
             <span style="font-size:20px;">${typeEmoji}</span>
-            <span style="color:rgba(255,255,255,0.6);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:2px;">${typeLabel} · NepalWander</span>
+            <span style="color:rgba(255,255,255,0.6);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:2px;">${typeLabel} · Tour Tech</span>
           </div>
           <h1 style="color:#fff;font-size:22px;font-weight:900;line-height:1.2;margin-bottom:6px;">${b?.item_name || "Booking"}</h1>
           <div style="color:rgba(255,255,255,0.5);font-size:11px;font-weight:600;">Booking Ref: <strong style="color:rgba(255,255,255,0.85);letter-spacing:1px;">${bookingRef}</strong></div>
@@ -832,7 +832,7 @@ function printTicket(p, curr) {
       <div style="display:flex;align-items:center;gap:8px;">
         <span style="font-size:18px;">🏔️</span>
         <div>
-          <div style="font-size:12px;font-weight:800;color:#374151;">NepalWander</div>
+          <div style="font-size:12px;font-weight:800;color:#374151;">Tour Tech</div>
           <div style="font-size:10px;color:#9ca3af;">Official Booking Confirmation · Nepal Tourism</div>
         </div>
       </div>
@@ -928,7 +928,7 @@ function TicketsTab({ payments }) {
                 <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
                   <span style={{ fontSize:"1.2rem" }}>{type==="hotel"?"🏨":type==="guide"?"👤":"🚌"}</span>
                   <span style={{ color:"rgba(255,255,255,0.65)", fontSize:"0.7rem", fontWeight:800, textTransform:"uppercase", letterSpacing:1.5 }}>
-                    {type==="hotel"?"Hotel Booking":type==="guide"?"Guide Booking":"Transport Booking"} · NepalWander
+                    {type==="hotel"?"Hotel Booking":type==="guide"?"Guide Booking":"Transport Booking"} · Tour Tech
                   </span>
                 </div>
                 <h4 style={{ color:"#fff", fontWeight:900, margin:0, fontFamily:"'Playfair Display',serif", fontSize:"1.3rem", lineHeight:1.2 }}>
@@ -1057,7 +1057,7 @@ function TicketsTab({ payments }) {
             <div style={{ borderTop:"2px dashed rgba(0,0,0,0.08)", margin:"0 28px", padding:"14px 0", display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:8 }}>
               <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                 <span style={{ fontSize:"1.1rem" }}>🏔️</span>
-                <span style={{ fontSize:"0.72rem", color:"var(--text3)", fontWeight:700 }}>NepalWander · Official Booking Confirmation</span>
+                <span style={{ fontSize:"0.72rem", color:"var(--text3)", fontWeight:700 }}>Tour Tech · Official Booking Confirmation</span>
               </div>
               {isRefunded ? (
                 <span style={{ fontSize:"0.75rem", color:"#9ca3af", fontWeight:700, padding:"5px 14px", borderRadius:99, background:"rgba(107,114,128,0.1)", border:"1px solid rgba(107,114,128,0.3)" }}>
