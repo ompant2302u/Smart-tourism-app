@@ -6,6 +6,12 @@ import { api } from "../api";
 import { useLang } from "../context/LangContext";
 import { BookingModal } from "../components/BookingModal";
 
+const API_BASE = import.meta.env.VITE_API_URL
+  || (typeof window !== "undefined" && window.location.hostname !== "localhost"
+      ? "https://smart-tourism-app-n7be.onrender.com"
+      : "http://localhost:8000");
+
+
 /* ─── HOTELS LIST ─── */
 export function HotelsPage({ navigate, user }) {
   const { t } = useLang();
@@ -53,7 +59,7 @@ export function HotelsPage({ navigate, user }) {
       </div>
 
       <div className="container section">
-        <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 32 }}>
+        <div className="filter-layout">
           <div className="filter-sidebar">
             <h6>🔍 {t("filter_hotels")}</h6>
 
@@ -148,7 +154,7 @@ export function HotelDetailPage({ navigate, pageParams, user }) {
     if (hotel.slug) {
       api.hotel(hotel.slug).then(d => { if (d?.id) setHotel(d); }).catch(() => {});
     }
-    fetch(`/api/hotels/${hotel.slug || hotel.id}/reviews/`)
+    fetch(`${API_BASE}/api/hotels/${hotel.slug || hotel.id}/reviews/`)
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setReviews(d); }).catch(() => setReviews([]));
     if (user) {
       api.addVisit({ content_type: "hotel", hotel_id: hotel.id, item_name: hotel.name }).catch(() => {});
@@ -245,7 +251,7 @@ export function HotelDetailPage({ navigate, pageParams, user }) {
       </div>
 
       <div className="container" style={{ padding: "60px 24px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 32, alignItems: "flex-start" }}>
+        <div className="detail-layout">
           <div>
             <div className="clay-card mb-24" style={{ padding: 32 }}>
               <h4 style={{ fontWeight: 800, marginBottom: 16, color: "var(--text)" }}>{t("about_this_hotel")}</h4>
@@ -456,7 +462,7 @@ export function GuidesPage({ navigate, user }) {
       </div>
 
       <div className="container section">
-        <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 32 }}>
+        <div className="filter-layout">
           <div className="filter-sidebar">
             <h6>🔍 {t("filter_guides")}</h6>
 
@@ -540,7 +546,7 @@ export function GuideDetailPage({ navigate, pageParams, user }) {
     if (guide.slug) {
       api.guide(guide.slug).then(d => { if (d?.id) setGuide(d); }).catch(() => {});
     }
-    fetch(`/api/guides/${guide.slug || guide.id}/reviews/`)
+    fetch(`${API_BASE}/api/guides/${guide.slug || guide.id}/reviews/`)
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setReviews(d); }).catch(() => setReviews([]));
     if (user) {
       api.addVisit({ content_type: "guide", guide_id: guide.id, item_name: guide.name }).catch(() => {});
@@ -641,7 +647,7 @@ export function GuideDetailPage({ navigate, pageParams, user }) {
       </div>
 
       <div className="container" style={{ padding: "60px 24px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 32, alignItems: "flex-start" }}>
+        <div className="detail-layout">
           <div>
             <div className="clay-card mb-24" style={{ padding: 32 }}>
               <h4 style={{ fontWeight: 800, marginBottom: 16, color: "var(--text)" }}>

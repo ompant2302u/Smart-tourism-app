@@ -2467,3 +2467,283 @@ body, .hero-bg-img, .scroll-track, .loader-bar, .reveal, .reveal-left, .reveal-r
   .section-title { font-size: 1.55rem; }
   .btn-xl { padding: 15px 32px; font-size: 1rem; }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   COMPREHENSIVE RESPONSIVE FIXES — Mobile to Laptop
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Filter sidebar + content layout ── */
+.filter-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 32px;
+}
+@media(max-width:900px) {
+  .filter-layout {
+    grid-template-columns: 1fr;
+  }
+  .filter-sidebar {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    align-items: end;
+  }
+  .filter-sidebar h6 { grid-column: 1 / -1; }
+}
+@media(max-width:640px) {
+  .filter-sidebar {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media(max-width:400px) {
+  .filter-sidebar {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Detail page two-column layout ── */
+.detail-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 32px;
+  align-items: flex-start;
+}
+@media(max-width:900px) {
+  .detail-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── About / Contact two-column ── */
+@media(max-width:768px) {
+  .about-grid,
+  .contact-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Hero search bar ── */
+@media(max-width:640px) {
+  .hero-search {
+    flex-direction: column;
+    border-radius: var(--radius-xl);
+    padding: 12px;
+    gap: 10px;
+  }
+  .hero-search input { padding: 8px 4px; }
+  .hero-search .clay-btn { width: 100%; justify-content: center; }
+  .hero-actions { flex-direction: column; }
+  .hero-actions .btn { width: 100%; justify-content: center; }
+}
+
+/* ── Navbar mobile ── */
+@media(max-width:640px) {
+  .nav-inner { padding: 0 14px; gap: 4px; }
+  .lang-code-label { display: none; }
+  .user-btn span:not(.user-avatar) { display: none; }
+  .user-btn { padding: 6px 10px; gap: 6px; }
+}
+
+/* ── Profile page ── */
+@media(max-width:768px) {
+  .profile-tabs { gap: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .profile-tab-btn span { display: none; }
+  .profile-tab-btn { padding: 12px 14px; }
+  .profile-tab-btn i { font-size: 1.1rem; }
+  .profile-stats-row { flex-wrap: wrap; gap: 8px; }
+  .profile-stat-pill { min-width: 80px; flex: 1; }
+}
+@media(max-width:640px) {
+  .profile-header { padding: 70px 0 0; }
+  .profile-header .container > div:first-child { flex-direction: column; align-items: flex-start; gap: 12px; }
+}
+
+/* ── Page header ── */
+@media(max-width:640px) {
+  .page-header { padding: 40px 0 28px; }
+  .page-header h1 { font-size: 1.6rem; }
+  .page-header p { font-size: 0.9rem; }
+}
+
+/* ── Cards grid on small screens ── */
+@media(max-width:768px) {
+  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+}
+@media(max-width:500px) {
+  .grid-3, .grid-2 { grid-template-columns: 1fr; }
+}
+
+/* ── Destination/Hotel detail hero ── */
+@media(max-width:640px) {
+  .detail-hero { height: 260px !important; }
+  .detail-hero-content { padding-bottom: 20px !important; }
+  .detail-hero-content h1 { font-size: 1.5rem !important; }
+}
+
+/* ── Section padding ── */
+@media(max-width:640px) {
+  .container.section { padding: 40px 16px 60px !important; }
+  .section { padding: 48px 0; }
+}
+
+/* ── AI Assistant panel — mobile ── */
+@media(max-width:480px) {
+  /* The voice assistant panel */
+  div[style*="position:fixed"][style*="right:16"][style*="bottom:20"],
+  div[style*="position: fixed"][style*="right: 16"][style*="bottom: 20"] {
+    right: 8px !important;
+    bottom: 12px !important;
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+  }
+}
+
+/* ── Modal responsive ── */
+@media(max-width:640px) {
+  .modal-backdrop { padding: 12px; }
+  .modal-box { padding: 20px 16px; max-height: 90vh; overflow-y: auto; }
+}
+
+/* ── Booking modal grid ── */
+@media(max-width:480px) {
+  .pay-method-btn { padding: 8px 4px; font-size: 0.72rem; }
+}
+
+/* ── Footer ── */
+@media(max-width:768px) {
+  .footer-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 32px !important;
+  }
+}
+@media(max-width:480px) {
+  .footer-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Transport page ── */
+@media(max-width:640px) {
+  .transport-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
+}
+
+/* ── AI Itinerary page ── */
+@media(max-width:768px) {
+  .ai-generator { padding: 20px 16px !important; }
+  .itinerary-day-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ── Interactive map page ── */
+@media(max-width:768px) {
+  .map-layout { flex-direction: column !important; }
+  .map-sidebar { width: 100% !important; max-height: 300px; overflow-y: auto; }
+}
+
+/* ── Trip cost estimator ── */
+@media(max-width:640px) {
+  .estimator-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ── Admin dashboard ── */
+@media(max-width:768px) {
+  .admin-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .admin-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+@media(max-width:480px) {
+  .admin-stats-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ── Inline style overrides for filter/detail grids ── */
+/* These target the inline-style grids in pages that don't use CSS classes */
+@media(max-width:900px) {
+  /* Destinations & Hotels filter sidebar */
+  .container .section > div[style*="280px"],
+  .container.section > div[style*="280px"] {
+    grid-template-columns: 1fr !important;
+  }
+  /* Detail page sidebar */
+  .container > div[style*="360px"],
+  .container > div[style*="320px"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Sticky sidebar fix on mobile ── */
+@media(max-width:900px) {
+  .detail-sidebar-col,
+  div[style*="position: sticky"],
+  div[style*="position:sticky"] {
+    position: static !important;
+  }
+}
+
+/* ── Text overflow on small screens ── */
+@media(max-width:480px) {
+  .dest-card-title,
+  .hotel-card-title,
+  .guide-name {
+    font-size: 0.95rem;
+  }
+  .clay-card { padding: 18px !important; }
+  .clay-btn-lg { padding: 11px 20px; font-size: 0.9rem; }
+}
+
+/* ── Breadcrumb wrap ── */
+.breadcrumb { flex-wrap: wrap; }
+
+/* ── Emergency contacts grid ── */
+@media(max-width:640px) {
+  div[style*="minmax(240px"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Contact / About inline grids ── */
+@media(max-width:768px) {
+  div[style*="1fr 1.5fr"],
+  div[style*="1fr 1fr"][style*="gap: 48"],
+  div[style*="1fr 1fr"][style*="gap:48"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Settings form grid ── */
+@media(max-width:480px) {
+  div[style*="1fr 1fr"][style*="gap: 12"],
+  div[style*="1fr 1fr"][style*="gap:12"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Horizontal scroll for tabs ── */
+.profile-tabs,
+.filter-chips-row {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.profile-tabs::-webkit-scrollbar,
+.filter-chips-row::-webkit-scrollbar { display: none; }
+
+/* ── Voice assistant floating button — mobile ── */
+@media(max-width:480px) {
+  /* Floating AI button */
+  button[aria-label="AI assistant"] {
+    right: 12px !important;
+    bottom: 16px !important;
+    width: 50px !important;
+    height: 50px !important;
+  }
+  button[aria-label="End voice chat"] {
+    right: 70px !important;
+    bottom: 16px !important;
+  }
+}
+
+/* ── Ensure images don't overflow ── */
+img { max-width: 100%; height: auto; }
+
+/* ── Prevent horizontal overflow globally ── */
+body { overflow-x: hidden; }
+.container { overflow-x: hidden; }

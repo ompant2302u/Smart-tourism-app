@@ -107,7 +107,18 @@ function AssistantInner({ navigate, open, setOpen }) {
     setVoiceError("");
     setTranscript([]);
     endingRef.current = false;
-    conversation.startSession({ agentId: AGENT_ID });
+    conversation.startSession({
+      agentId: AGENT_ID,
+      // Keep session alive — don't auto-end after one exchange
+      overrides: {
+        agent: {
+          turn: {
+            turn_timeout: 30,
+            mode: "turn",
+          },
+        },
+      },
+    });
   }, [conversation, isConnected, isConnecting]);
 
   const stopVoice = useCallback(() => {
@@ -194,6 +205,19 @@ function AssistantInner({ navigate, open, setOpen }) {
         }}>
           🤖
           <span style={{position:"absolute",top:0,right:0,width:12,height:12,borderRadius:"50%",background:"#22c55e",border:"2px solid #111"}}/>
+        </button>
+      )}
+
+      {/* Global End Chat button — visible when voice is active and panel is closed */}
+      {!open && isConnected && (
+        <button onClick={stopVoice} aria-label="End voice chat" style={{
+          position:"fixed",right:84,bottom:24,padding:"0 16px",height:40,borderRadius:20,
+          border:"1px solid rgba(239,68,68,.5)",background:"rgba(239,68,68,.15)",
+          color:"#fca5a5",fontSize:12,fontWeight:700,cursor:"pointer",zIndex:9999,
+          display:"flex",alignItems:"center",gap:6,backdropFilter:"blur(8px)",
+          boxShadow:"0 4px 14px rgba(239,68,68,.3)",
+        }}>
+          ■ End Chat
         </button>
       )}
 

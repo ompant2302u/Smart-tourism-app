@@ -5,6 +5,12 @@ import { api } from "../api";
 import { useLang } from "../context/LangContext";
 import NepalImage from "../components/common/NepalImage";
 
+const API_BASE = import.meta.env.VITE_API_URL
+  || (typeof window !== "undefined" && window.location.hostname !== "localhost"
+      ? "https://smart-tourism-app-n7be.onrender.com"
+      : "http://localhost:8000");
+
+
 export function DestinationsPage({ navigate, user }) {
   const { t } = useLang();
   const [selCat, setSelCat] = useState("");
@@ -46,7 +52,7 @@ export function DestinationsPage({ navigate, user }) {
       </div>
 
       <div className="container section">
-        <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 32 }}>
+        <div className="filter-layout">
           <div className="filter-sidebar">
             <h6>🔍 {t("filter_results")}</h6>
 
@@ -133,7 +139,7 @@ export function DestinationDetailPage({ navigate, pageParams, user }) {
     if (dest.slug) {
       api.destination(dest.slug).then(d => { if (d?.id) setDest(d); }).catch(() => {});
     }
-    fetch(`/api/destinations/${dest.slug || dest.id}/reviews/`)
+    fetch(`${API_BASE}/api/destinations/${dest.slug || dest.id}/reviews/`)
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setReviews(d); }).catch(() => setReviews([]));
     if (user) {
       api.addVisit({ content_type: "destination", destination_id: dest.id, item_name: dest.name }).catch(() => {});
@@ -245,7 +251,7 @@ export function DestinationDetailPage({ navigate, pageParams, user }) {
       </div>
 
       <div className="container" style={{ padding: "60px 24px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 32, alignItems: "flex-start" }}>
+        <div className="detail-layout">
           <div>
             <div className="clay-card mb-24" style={{ padding: 32 }}>
               <h4 style={{ fontWeight: 800, marginBottom: 16, color: "var(--text)" }}>
